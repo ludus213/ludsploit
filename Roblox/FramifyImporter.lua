@@ -1,5 +1,5 @@
 -- Framify Importer
--- Version: 9.0.0 THE FINAL POLISH
+-- Version: 11.0.0 ABSOLUTELY DEFINITIVELY FINAL
 -- This script contains the full, final, and completely refactored logic for the Framify Roblox Studio plugin.
 
 local HttpService = game:GetService("HttpService")
@@ -43,10 +43,9 @@ function applyTheme(themeName)
     local theme = Themes[themeName] or Themes["High Contrast"]
     Config.THEME = themeName
     for name, element in pairs(UI) do
-        local elType = element.ClassName
         if name:match("Frame$") then element.BackgroundColor3 = theme.BG
         elseif name:match("Title") then element.TextColor3 = theme.Text
-        elseif name:match("Label") or name:match("Support") or name:match("Instructions") or name:match("Version") then element.TextColor3 = theme.TextSecondary
+        elseif name:match("Label") or name:match("Support") or name:match("Instructions") or name:match("Version") or name:match("PromptText") then element.TextColor3 = theme.TextSecondary
         elseif name:match("TextScrollFrame") then element.BackgroundColor3 = theme.Surface; element.BorderColor3 = theme.Border
         elseif name:match("TextBox") then element.BackgroundColor3 = theme.Surface; element.TextColor3 = theme.Text; element.PlaceholderColor3 = theme.TextSecondary
         elseif name:match("Icon") then element.ImageColor3 = theme.TextSecondary
@@ -85,7 +84,7 @@ function createSettingsUI(widget)
     local tl = Instance.new("TextLabel",f); tl.Name="Label"; tl.LayoutOrder=5; tl.Text="Theme"; tl.Size=UDim2.new(1,0,0,18); tl.Font=Enum.Font.Gotham; tl.TextSize=14; tl.BackgroundTransparency=1; tl.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsThemeLabel=tl
     local df = Instance.new("Frame",f); df.Name="DropdownFrame"; df.LayoutOrder=6; df.Size=UDim2.new(1,0,0,35); df.BackgroundTransparency=1; df.ZIndex=10
     local d = Instance.new("TextButton",df); d:SetAttribute("StyleType", "Secondary"); d.Size=UDim2.fromScale(1,1); d.Text=Config.THEME; UI.SettingsThemeDropdown=d
-    local o = Instance.new("ScrollingFrame",f); o.Name="OptionsFrame"; o.LayoutOrder=7; o.ZIndex=20; o.Size=UDim2.new(1,0,0,125); o.Visible=false; UI.SettingsThemeOptions=o
+    local o = Instance.new("ScrollingFrame",df); o.Name="OptionsFrame"; o.LayoutOrder=7; o.ZIndex=20; o.Size=UDim2.new(1,0,0,125); o.Visible=false; o.Parent=d
     local ol = Instance.new("UIListLayout",o)
     d.MouseButton1Click:Connect(function() o.Visible=not o.Visible end)
     for name,_ in pairs(Themes) do local b=Instance.new("TextButton",o); b:SetAttribute("StyleType", "Secondary"); b.Size=UDim2.new(1,0,0,30); b.Text=name; UI["ThemeOption_"..name]=b; b.MouseButton1Click:Connect(function() d.Text=name; o.Visible=false; applyTheme(name) end) end

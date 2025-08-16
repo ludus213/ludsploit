@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 320, height: 520 });
+figma.showUI(__html__, { width: 320, height: 470 });
 
 // A map to store image data to handle '#' tag for asset reuse
 const imageAssetMap = new Map();
