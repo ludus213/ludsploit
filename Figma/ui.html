@@ -5,65 +5,140 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 16px;
-      background-color: #1E1E1E;
-      color: #FFFFFF;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+    :root {
+      --bg-color: #2C2C2C;
+      --fg-color: #FFFFFF;
+      --primary-color: #0D99FF;
+      --primary-hover-color: #007ADF;
+      --surface-color: #383838;
+      --border-color: #4A4A4A;
+      --disabled-color: #555;
     }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background-color: var(--bg-color);
+      color: var(--fg-color);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
     #app {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 24px;
     }
+
     h1 {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 600;
       margin: 0;
     }
+
+    p {
+        font-size: 14px;
+        opacity: 0.8;
+        margin: 4px 0 0 0;
+        line-height: 1.5;
+    }
+
     button {
-      background-color: #0D99FF;
+      background-color: var(--primary-color);
       color: white;
       border: none;
-      border-radius: 6px;
-      padding: 10px 16px;
+      border-radius: 8px;
+      padding: 12px 16px;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
+
     button:hover {
-      background-color: #007ADF;
+      background-color: var(--primary-hover-color);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
+
+    button:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
     button:disabled {
-      background-color: #555;
+      background-color: var(--disabled-color);
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
+
+    #result-section {
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #result-section.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .textarea-container {
+        position: relative;
+    }
+
     textarea {
       font-family: "SF Mono", "Consolas", "Menlo", monospace;
       width: 100%;
       box-sizing: border-box;
-      min-height: 150px;
-      background-color: #2D2D2D;
-      color: #FFFFFF;
-      border: 1px solid #444;
-      border-radius: 6px;
-      padding: 8px;
-      font-size: 12px;
+      min-height: 180px;
+      background-color: var(--surface-color);
+      color: var(--fg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
       resize: vertical;
+      transition: border-color 0.2s;
     }
-    .hidden {
-      display: none;
+
+    textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
     }
-    #export-section, #result-section {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+
+    #copy-button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background-color: var(--surface-color);
+        color: var(--fg-color);
+        opacity: 0.8;
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 6px;
     }
+
+    #copy-button:hover {
+        background-color: #454545;
+        opacity: 1;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 12px;
+    }
+
     label {
-      font-weight: 500;
+      font-weight: 600;
       font-size: 12px;
+      text-transform: uppercase;
+      opacity: 0.7;
     }
   </style>
 </head>
@@ -72,18 +147,25 @@
     <div id="export-section">
       <h1>Framify</h1>
       <p>Select layers in Figma and click Export to generate the mapping string and image assets.</p>
-      <button id="export-button">Export</button>
+      <button id="export-button">Export Selection</button>
     </div>
-    <div id="result-section" class="hidden">
+
+    <div id="result-section">
       <label for="mapping-string">Mapping String</label>
-      <textarea id="mapping-string" readonly></textarea>
-      <button id="download-button" disabled>Download Images (.zip)</button>
+      <div class="textarea-container">
+        <textarea id="mapping-string" readonly></textarea>
+        <button id="copy-button">Copy</button>
+      </div>
+      <div class="button-group">
+        <button id="download-button" disabled>Download Images (.zip)</button>
+      </div>
     </div>
   </div>
 
   <script>
     const exportButton = document.getElementById('export-button');
     const downloadButton = document.getElementById('download-button');
+    const copyButton = document.getElementById('copy-button');
     const mappingStringTextarea = document.getElementById('mapping-string');
     const resultSection = document.getElementById('result-section');
 
@@ -110,17 +192,26 @@
         });
     };
 
+    copyButton.onclick = () => {
+        mappingStringTextarea.select();
+        document.execCommand('copy');
+        copyButton.innerText = "Copied!";
+        setTimeout(() => { copyButton.innerText = "Copy"; }, 2000);
+    };
+
     window.onmessage = event => {
       const message = event.data.pluginMessage;
       if (message.type === 'export-result') {
         mappingStringTextarea.value = message.mappingString;
-        resultSection.classList.remove('hidden');
-        exportButton.innerText = "Export";
+        resultSection.classList.add('visible');
+        exportButton.innerText = "Export Selection";
         exportButton.disabled = false;
 
         exportedImages = message.images;
         if (exportedImages && exportedImages.length > 0) {
             downloadButton.disabled = false;
+        } else {
+            downloadButton.disabled = true;
         }
       }
     };
