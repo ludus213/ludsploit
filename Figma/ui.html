@@ -33,6 +33,12 @@
       gap: 24px;
     }
 
+    .header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
     h1 {
       font-size: 20px;
       font-weight: 600;
@@ -47,6 +53,10 @@
     }
 
     button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       background-color: var(--primary-color);
       color: white;
       border: none;
@@ -81,11 +91,13 @@
         opacity: 0;
         transform: translateY(10px);
         transition: opacity 0.3s ease, transform 0.3s ease;
+        pointer-events: none;
     }
 
     #result-section.visible {
         opacity: 1;
         transform: translateY(0);
+        pointer-events: all;
     }
 
     .textarea-container {
@@ -116,23 +128,18 @@
         position: absolute;
         top: 8px;
         right: 8px;
-        background-color: var(--surface-color);
+        background-color: #454545;
         color: var(--fg-color);
         opacity: 0.8;
         padding: 4px 8px;
         font-size: 12px;
         border-radius: 6px;
+        min-height: auto;
     }
+    #copy-button:hover { background-color: #555; opacity: 1; }
+    .icon { width: 14px; height: 14px; }
 
-    #copy-button:hover {
-        background-color: #454545;
-        opacity: 1;
-    }
-
-    .button-group {
-        display: flex;
-        gap: 12px;
-    }
+    .button-group { display: flex; gap: 12px; }
 
     label {
       font-weight: 600;
@@ -145,7 +152,10 @@
 <body>
   <div id="app">
     <div id="export-section">
-      <h1>Framify</h1>
+      <div class="header">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 7L12 12L22 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22V12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h1>Framify</h1>
+      </div>
       <p>Select layers in Figma and click Export to generate the mapping string and image assets.</p>
       <button id="export-button">Export Selection</button>
     </div>
@@ -154,7 +164,10 @@
       <label for="mapping-string">Mapping String</label>
       <div class="textarea-container">
         <textarea id="mapping-string" readonly></textarea>
-        <button id="copy-button">Copy</button>
+        <button id="copy-button">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 16H6C4.89543 16 4 15.1046 4 14V6C4 4.89543 4.89543 4 6 4H14C15.1046 4 16 4.89543 16 6V8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 12H20V20H10V12Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span id="copy-text">Copy</span>
+        </button>
       </div>
       <div class="button-group">
         <button id="download-button" disabled>Download Images (.zip)</button>
@@ -166,6 +179,7 @@
     const exportButton = document.getElementById('export-button');
     const downloadButton = document.getElementById('download-button');
     const copyButton = document.getElementById('copy-button');
+    const copyText = document.getElementById('copy-text');
     const mappingStringTextarea = document.getElementById('mapping-string');
     const resultSection = document.getElementById('result-section');
 
@@ -195,8 +209,8 @@
     copyButton.onclick = () => {
         mappingStringTextarea.select();
         document.execCommand('copy');
-        copyButton.innerText = "Copied!";
-        setTimeout(() => { copyButton.innerText = "Copy"; }, 2000);
+        copyText.innerText = "Copied!";
+        setTimeout(() => { copyText.innerText = "Copy"; }, 2000);
     };
 
     window.onmessage = event => {

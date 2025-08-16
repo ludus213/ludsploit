@@ -17,13 +17,11 @@ figma.ui.onmessage = async (msg) => {
 
     const mapping = [];
     for (const node of selection) {
-      // Pass the map to be populated by the recursive function
       mapping.push(await processNode(node, imageAssetMap));
     }
 
     const mappingString = JSON.stringify(mapping, null, 2);
 
-    // Convert map to array of objects for postMessage
     const images = Array.from(imageAssetMap.entries()).map(([id, bytes]) => ({ id, bytes }));
 
     figma.ui.postMessage({ type: 'export-result', mappingString: mappingString, images: images });
@@ -44,26 +42,26 @@ async function processNode(node, assetMap) {
     assetId: null,
   };
 
-  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent');
+  const hasBlurEffect = node.effects && node.effects.some(effect => effect.type === 'LAYER_BLUR' && effect.visible);
+  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect;
 
-  if (assetId) {
-    nodeData.assetId = assetId;
-    // If this assetId has not been exported yet, export it now
-    if (isExportable && !assetMap.has(assetId)) {
-      const imageBytes = await node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 2 } });
-      assetMap.set(assetId, imageBytes);
-    }
-  } else if (isExportable) {
-    // Auto-generate an asset ID if it's exportable but has no #tag
-    const autoAssetId = `asset_${node.id.replace(/:/g, '_')}`;
-    nodeData.assetId = autoAssetId;
-    if (!assetMap.has(autoAssetId)) {
-        const imageBytes = await node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 2 } });
-        assetMap.set(autoAssetId, imageBytes);
-    }
+  if (isExportable) {
+      if (assetId) {
+        nodeData.assetId = assetId;
+        if (!assetMap.has(assetId)) {
+          const imageBytes = await node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 2 } });
+          assetMap.set(assetId, imageBytes);
+        }
+      } else {
+        const autoAssetId = `asset_${node.id.replace(/:/g, '_')}`;
+        nodeData.assetId = autoAssetId;
+        if (!assetMap.has(autoAssetId)) {
+            const imageBytes = await node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: 2 } });
+            assetMap.set(autoAssetId, imageBytes);
+        }
+      }
   }
 
-  // If this node was exported as a parent, don't process its children individually
   if (tags.includes('parent')) {
     return nodeData;
   }
@@ -94,6 +92,7 @@ function getNodeProperties(node) {
     rotation: node.rotation,
     opacity: node.opacity,
     visible: node.visible,
+    effects: node.effects, // <-- Added effects property
   };
 
   if ('fills' in node) properties.fills = node.fills;
