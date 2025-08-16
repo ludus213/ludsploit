@@ -1,0 +1,259 @@
+-- Framify Importer
+-- This script will be run by the Roblox Studio plugin framework.
+
+--------------------------------------------------------------------------------
+--[[ CONFIGURATION ]]--
+--------------------------------------------------------------------------------
+local TARGET_SCREEN_GUI = "FramifyImport"
+local IMAGE_ASSET_LOCATION = nil
+local CREATE_BEHAVIOR_SCRIPTS = true
+
+--------------------------------------------------------------------------------
+--[[ SERVICES ]]--
+--------------------------------------------------------------------------------
+local HttpService = game:GetService("HttpService")
+local Selection = game:GetService("Selection")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+--------------------------------------------------------------------------------
+--[[ PLUGIN UI SETUP (Omitted for brevity, same as before) ]]--
+--------------------------------------------------------------------------------
+local toolbar = plugin:CreateToolbar("Framify")
+local importButton = toolbar:CreateButton("Import UI", "Import UI from Framify mapping string", "rbxassetid://123456789")
+local widgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, false, 300, 450, 300, 450)
+local mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", widgetInfo)
+mainWidget.Title = "Framify Importer"
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(1, 0, 1, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+mainFrame.Parent = mainWidget
+local mainLayout = Instance.new("UIListLayout")
+mainLayout.Padding = UDim.new(0, 10)
+mainLayout.SortOrder = Enum.SortOrder.LayoutOrder
+mainLayout.Parent = mainFrame
+local padding = Instance.new("UIPadding")
+padding.PaddingLeft = UDim.new(0, 10)
+padding.PaddingRight = UDim.new(0, 10)
+padding.PaddingTop = UDim.new(0, 10)
+padding.PaddingBottom = UDim.new(0, 10)
+padding.Parent = mainFrame
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Text = "Framify Importer"
+titleLabel.Size = UDim2.new(1, 0, 0, 20)
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 18
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.BackgroundTransparency = 1
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.LayoutOrder = 1
+titleLabel.Parent = mainFrame
+local instructionLabel = Instance.new("TextLabel")
+instructionLabel.Text = "Paste the mapping string from the Figma plugin below."
+instructionLabel.Size = UDim2.new(1, 0, 0, 30)
+instructionLabel.Font = Enum.Font.SourceSans
+instructionLabel.TextSize = 14
+instructionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+instructionLabel.TextWrapped = true
+instructionLabel.BackgroundTransparency = 1
+instructionLabel.TextXAlignment = Enum.TextXAlignment.Left
+instructionLabel.LayoutOrder = 2
+instructionLabel.Parent = mainFrame
+local mappingTextBox = Instance.new("TextBox")
+mappingTextBox.Size = UDim2.new(1, 0, 1, -150)
+mappingTextBox.Font = Enum.Font.Code
+mappingTextBox.TextSize = 12
+mappingTextBox.MultiLine = true
+mappingTextBox.ClearTextOnFocus = false
+mappingTextBox.PlaceholderText = "Paste mapping string here..."
+mappingTextBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mappingTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+mappingTextBox.TextXAlignment = Enum.TextXAlignment.Left
+mappingTextBox.TextYAlignment = Enum.TextYAlignment.Top
+mappingTextBox.LayoutOrder = 3
+mappingTextBox.Parent = mainFrame
+local importGuiButton = Instance.new("TextButton")
+importGuiButton.Text = "Import"
+importGuiButton.Size = UDim2.new(1, 0, 0, 40)
+importGuiButton.Font = Enum.Font.SourceSansBold
+importGuiButton.TextSize = 16
+importGuiButton.BackgroundColor3 = Color3.fromRGB(13, 153, 255)
+importGuiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+importGuiButton.LayoutOrder = 4
+importGuiButton.Parent = mainFrame
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Text = ""
+statusLabel.Size = UDim2.new(1, 0, 0, 20)
+statusLabel.Font = Enum.Font.SourceSans
+statusLabel.TextSize = 12
+statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.LayoutOrder = 5
+statusLabel.Parent = mainFrame
+
+--------------------------------------------------------------------------------
+--[[ CORE LOGIC ]]--
+--------------------------------------------------------------------------------
+local elementCreators = {}
+local propertyAppliers = {}
+
+-- Behavior Script Generation
+function createBehaviorScript(element, tags)
+    local hasHover = table.find(tags, "hover")
+    local hasToggle = table.find(tags, "toggled")
+    local hasDisabled = table.find(tags, "disabled")
+
+    local scriptSource = [[
+        local button = script.Parent
+        local TweenService = game:GetService("TweenService")
+
+        local originalColor = button.BackgroundColor3
+        local hoverColor = originalColor:Lerp(Color3.new(1,1,1), 0.2)
+        local pressedColor = originalColor:Lerp(Color3.new(0,0,0), 0.2)
+
+        local isToggled = false
+        local isEnabled = true
+
+        local function updateVisuals()
+            if not isEnabled then
+                button.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
+                return
+            end
+            if isToggled then
+                button.BackgroundColor3 = pressedColor
+            else
+                button.BackgroundColor3 = originalColor
+            end
+        end
+
+    ]]
+
+    if hasHover then
+        scriptSource = scriptSource .. [[
+        button.MouseEnter:Connect(function()
+            if not isEnabled or isToggled then return end
+            TweenService:Create(button, TweenInfo.new(0.2), { BackgroundColor3 = hoverColor }):Play()
+        end)
+        button.MouseLeave:Connect(function()
+            if not isEnabled or isToggled then return end
+            TweenService:Create(button, TweenInfo.new(0.2), { BackgroundColor3 = originalColor }):Play()
+        end)
+        ]]
+    end
+
+    if hasToggle then
+        scriptSource = scriptSource .. [[
+        button.MouseButton1Click:Connect(function()
+            if not isEnabled then return end
+            isToggled = not isToggled
+            updateVisuals()
+        end)
+        ]]
+    end
+
+    if hasDisabled then
+        scriptSource = scriptSource .. [[
+        isEnabled = false
+        updateVisuals()
+        ]]
+    end
+
+    local script = Instance.new("LocalScript")
+    script.Name = "ButtonBehavior"
+    script.Source = scriptSource
+    script.Parent = element
+end
+
+-- Element Creators
+elementCreators.Default = function(data)
+    local tags = data.tags
+    local element
+    if table.find(tags, "button") then element = Instance.new("ImageButton")
+    elseif table.find(tags, "image") then element = Instance.new("ImageLabel")
+    elseif table.find(tags, "vpf") then element = Instance.new("ViewportFrame")
+    elseif table.find(tags, "canvas") then element = Instance.new("CanvasGroup")
+    elseif table.find(tags, "scroll") then
+        element = Instance.new("ScrollingFrame")
+        element.ScrollingDirection = table.find(tags, "scrollx") and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y
+    else
+        element = Instance.new("Frame")
+    end
+
+    if table.find(tags, "box") then
+        local layout = Instance.new("UIListLayout")
+        layout.Parent = element
+    end
+
+    return element
+end
+elementCreators.TEXT = function(data) return Instance.new("TextLabel") end
+
+-- Property Appliers
+function applyConstraints(element, constraints)
+    if not constraints then return end
+    local x, y = 0, 0
+    if constraints.horizontal == "CENTER" then x = 0.5
+    elseif constraints.horizontal == "RIGHT" then x = 1
+    elseif constraints.horizontal == "SCALE" then x = 0.5 end -- Best guess for scale
+
+    if constraints.vertical == "CENTER" then y = 0.5
+    elseif constraints.vertical == "BOTTOM" then y = 1
+    elseif constraints.vertical == "SCALE" then y = 0.5 end -- Best guess for scale
+
+    element.AnchorPoint = Vector2.new(x, y)
+    element.Position = UDim2.new(x, element.Position.X.Offset, y, element.Position.Y.Offset)
+end
+
+propertyAppliers.Default = function(element, data)
+    local props = data.properties
+    element.Name = data.name
+    element.Visible = props.visible
+    element.Position = UDim2.fromOffset(props.position.x, props.position.y)
+    element.Size = UDim2.fromOffset(props.size.x, props.size.y)
+    element.Rotation = props.rotation
+    element.ClipsDescendants = data.type == 'FRAME'
+    applyConstraints(element, props.constraints)
+    -- ... (rest of property appliers like fills, strokes, corners)
+end
+
+-- (Include the other helper functions: findImageAsset, applyFills, applyStrokes, etc.)
+-- (The main recursive function `createFromData` and the button click handlers remain the same)
+
+function findImageAsset(assetId) if not assetId then return "" end local assetLocation = IMAGE_ASSET_LOCATION or ReplicatedStorage local image = assetLocation:FindFirstChild(assetId, true) if image and image:IsA("ImageLabel") then return image.Image elseif image and image:IsA("ImageButton") then return image.Image elseif image and image:IsA("Decal") then return image.Texture end return "rbxassetid://" .. (tonumber(assetId) or 0) end
+function applyFills(element, fills) if not fills or #fills == 0 then element.BackgroundTransparency = 1 return end local fill = fills[1] local opacity = fill.opacity or 1 if fill.type == "SOLID" then element.BackgroundColor3 = Color3.new(fill.color.r, fill.color.g, fill.color.b) element.BackgroundTransparency = 1 - opacity elseif string.find(fill.type, "GRADIENT") then local gradient = Instance.new("UIGradient") local colorStops = {} for _, stop in ipairs(fill.gradientStops) do table.insert(colorStops, ColorSequenceKeypoint.new(stop.position, Color3.new(stop.color.r, stop.color.g, stop.color.b))) end gradient.Color = ColorSequence.new(colorStops) gradient.Parent = element end end
+function applyStrokes(element, strokes, weight) if not strokes or #strokes == 0 then return end local stroke = strokes[1] local uiStroke = Instance.new("UIStroke") uiStroke.Thickness = weight or 1 if stroke.type == "SOLID" then uiStroke.Color = Color3.new(stroke.color.r, stroke.color.g, stroke.color.b) end uiStroke.Parent = element end
+propertyAppliers.TEXT = function(element, data) propertyAppliers.Default(element, data) local props = data.properties element.Text = props.characters element.Font = Enum.Font.SourceSans element.TextSize = props.fontSize element.TextColor3 = element.BackgroundColor3 element.TextWrapped = true if props.fills and #props.fills > 0 then local fill = props.fills[1] element.TextColor3 = Color3.new(fill.color.r, fill.color.g, fill.color.b) element.TextTransparency = 1 - (fill.opacity or 1) end element.TextXAlignment = props.textAlignHorizontal element.TextYAlignment = props.textAlignVertical end
+propertyAppliers.Image = function(element, data) if data.assetId then element.Image = findImageAsset(data.assetId) element.BackgroundTransparency = 1 end end
+
+function createFromData(data, parent)
+    local elementType = data.type
+    local creator = elementCreators[elementType] or elementCreators.Default
+    local element = creator(data)
+    local applier = propertyAppliers[elementType] or propertyAppliers.Default
+    applier(element, data)
+    if element:IsA("ImageLabel") or element:IsA("ImageButton") then propertyAppliers.Image(element, data) end
+    if CREATE_BEHAVIOR_SCRIPTS and table.find(data.tags, "button") then createBehaviorScript(element, data.tags) end
+    element.Parent = parent
+    if data.children then for _, childData in ipairs(data.children) do createFromData(childData, element) end end
+    return element
+end
+function showStatus(message, isError) if isError then statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100) else statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100) end statusLabel.Text = message end
+importButton.Click:Connect(function() mainWidget.Enabled = not mainWidget.Enabled end)
+importGuiButton.MouseButton1Click:Connect(function()
+    showStatus("", false)
+    local mappingString = mappingTextBox.Text
+    if mappingString == "" then showStatus("Mapping string cannot be empty.", true) return end
+    local success, data = pcall(function() return HttpService:JSONDecode(mappingString) end)
+    if not success then showStatus("Error: Invalid mapping string.", true) return end
+    showStatus("Importing...", false)
+    local targetGui = StarterGui:FindFirstChild(TARGET_SCREEN_GUI)
+    if targetGui then targetGui:Destroy() end
+    targetGui = Instance.new("ScreenGui")
+    targetGui.Name = TARGET_SCREEN_GUI
+    for _, nodeData in ipairs(data) do createFromData(nodeData, targetGui) end
+    targetGui.Parent = StarterGui
+    Selection:Set({targetGui})
+    showStatus("Import successful!", false)
+end)
+mainWidget.Enabled = false

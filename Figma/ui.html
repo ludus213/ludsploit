@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background-color: #1E1E1E;
+      color: #FFFFFF;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+    button {
+      background-color: #0D99FF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #007ADF;
+    }
+    button:disabled {
+      background-color: #555;
+      cursor: not-allowed;
+    }
+    textarea {
+      font-family: "SF Mono", "Consolas", "Menlo", monospace;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 150px;
+      background-color: #2D2D2D;
+      color: #FFFFFF;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+      resize: vertical;
+    }
+    .hidden {
+      display: none;
+    }
+    #export-section, #result-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-weight: 500;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="export-section">
+      <h1>Framify</h1>
+      <p>Select layers in Figma and click Export to generate the mapping string and image assets.</p>
+      <button id="export-button">Export</button>
+    </div>
+    <div id="result-section" class="hidden">
+      <label for="mapping-string">Mapping String</label>
+      <textarea id="mapping-string" readonly></textarea>
+      <button id="download-button" disabled>Download Images (.zip)</button>
+    </div>
+  </div>
+
+  <script>
+    const exportButton = document.getElementById('export-button');
+    const downloadButton = document.getElementById('download-button');
+    const mappingStringTextarea = document.getElementById('mapping-string');
+    const resultSection = document.getElementById('result-section');
+
+    let exportedImages = [];
+
+    exportButton.onclick = () => {
+      exportButton.innerText = "Exporting...";
+      exportButton.disabled = true;
+      downloadButton.disabled = true;
+      parent.postMessage({ pluginMessage: { type: 'export' } }, '*');
+    };
+
+    downloadButton.onclick = () => {
+        const zip = new JSZip();
+        for (const image of exportedImages) {
+            zip.file(`${image.id}.png`, image.bytes);
+        }
+        zip.generateAsync({ type: "blob" }).then(content => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = 'framify-assets.zip';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+    };
+
+    window.onmessage = event => {
+      const message = event.data.pluginMessage;
+      if (message.type === 'export-result') {
+        mappingStringTextarea.value = message.mappingString;
+        resultSection.classList.remove('hidden');
+        exportButton.innerText = "Export";
+        exportButton.disabled = false;
+
+        exportedImages = message.images;
+        if (exportedImages && exportedImages.length > 0) {
+            downloadButton.disabled = false;
+        }
+      }
+    };
+  </script>
+</body>
+</html>
