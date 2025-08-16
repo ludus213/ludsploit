@@ -1,5 +1,5 @@
 -- Framify Importer
--- Version: 6.0.0 DEFINITIVE FINAL
+-- Version: 7.0.0 ABSOLUTE FINAL
 -- This script contains the full, final, and completely refactored logic for the Framify Roblox Studio plugin.
 
 local HttpService = game:GetService("HttpService")
@@ -25,30 +25,40 @@ local Themes = {
 local UI = {}
 local fontMap = { ['Arial']=Enum.Font.Legacy, ['Roboto']=Enum.Font.SourceSans, ['Inter']=Enum.Font.SourceSans, ['Gotham']=Enum.Font.Gotham }
 
+function styleButton(button, styleType, theme)
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 16
+    local corner = button:FindFirstChildOfClass("UICorner") or Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+
+    if styleType == "Primary" then button.BackgroundColor3 = theme.Primary; button.TextColor3 = Color3.new(1,1,1)
+    elseif styleType == "Secondary" then button.BackgroundColor3 = theme.Surface; button.TextColor3 = theme.Text
+    elseif styleType == "Danger" then button.BackgroundColor3 = theme.Danger; button.TextColor3 = Color3.new(1,1,1)
+    end
+end
+
 function applyTheme(themeName)
     local theme = Themes[themeName] or Themes["High Contrast"]
     Config.THEME = themeName
     for name, element in pairs(UI) do
-        local elType = element.ClassName
-        if elType == "Frame" then element.BackgroundColor3 = theme.BG
-        elseif elType == "TextLabel" then
-            if element.Name == "Title" then element.TextColor3 = theme.Text
-            elseif element.Name == "Label" or element.Name == "Support" or element.Name == "Instructions" then element.TextColor3 = theme.TextSecondary
-            end
-        elseif elType == "TextButton" then
-            if element.Name == "Primary" then element.BackgroundColor3 = theme.Primary; element.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner",element).CornerRadius=UDim.new(0,6)
-            elseif element.Name == "Secondary" then element.BackgroundColor3 = theme.Surface; element.TextColor3 = theme.Text; Instance.new("UICorner",element).CornerRadius=UDim.new(0,6)
-            elseif element.Name == "Danger" then element.BackgroundColor3 = theme.Danger; element.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner",element).CornerRadius=UDim.new(0,6)
-            end
-        elseif elType == "TextBox" then element.BackgroundColor3 = theme.Surface; element.TextColor3 = theme.Text; element.PlaceholderColor3 = theme.TextSecondary
-        elseif elType == "ScrollingFrame" then element.BackgroundColor3 = theme.Surface; element.BorderColor3 = theme.Border
-        elseif elType == "ImageLabel" and element.Name == "Icon" then element.ImageColor3 = theme.TextSecondary
+        if name:match("Frame$") then element.BackgroundColor3 = theme.BG
+        elseif name:match("Title") then element.TextColor3 = theme.Text
+        elseif name:match("Label") or name:match("Support") or name:match("Instructions") then element.TextColor3 = theme.TextSecondary
+        elseif name:match("TextScrollFrame") then element.BackgroundColor3 = theme.Surface; element.BorderColor3 = theme.Border
+        elseif name:match("TextBox") then element.BackgroundColor3 = theme.Surface; element.TextColor3 = theme.Text; element.PlaceholderColor3 = theme.TextSecondary
+        elseif name:match("Button$") then styleButton(element, element.Name, theme)
+        elseif name:match("Check$") then styleButton(element, "Secondary", theme)
+        elseif name:match("Dropdown$") then styleButton(element, "Secondary", theme)
+        elseif name:match("Icon") then element.ImageColor3 = theme.TextSecondary
         end
     end
+    if UI.PromptYes then styleButton(UI.PromptYes, "Primary", theme) end
+    if UI.PromptNo then styleButton(UI.PromptNo, "Danger", theme) end
 end
 
 function createMainUI(widget)
-    local f = Instance.new("Frame"); f.Name="MainFrame"; f.Size=UDim2.fromScale(1,1); UI.MainFrame=f; f.Parent=widget
+    local f = Instance.new("Frame"); f.Name="MainFrame"; f.Size=UDim2.fromScale(1,1); f.Parent=widget; UI.MainFrame=f
     local p = Instance.new("UIPadding",f); p.PaddingLeft,p.PaddingRight,p.PaddingTop,p.PaddingBottom=UDim.new(0,15),UDim.new(0,15),UDim.new(0,15),UDim.new(0,15)
     local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,15); l.SortOrder=Enum.SortOrder.LayoutOrder; l.HorizontalAlignment=Enum.HorizontalAlignment.Center
     local t = Instance.new("TextLabel",f); t.Name="Title"; t.LayoutOrder=1; t.Text="Framify Importer"; t.Size=UDim2.new(1,0,0,24); t.Font=Enum.Font.GothamBold; t.TextSize=22; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Center; UI.MainTitle=t
@@ -56,7 +66,7 @@ function createMainUI(widget)
     local s = Instance.new("ScrollingFrame",f); s.Name="TextScrollFrame"; s.LayoutOrder=3; s.Size=UDim2.new(1,0,1,-180); s.BorderSizePixel=1; UI.MainTextScrollFrame=s
     local tb = Instance.new("TextBox",s); tb.Name="TextBox"; tb.AutomaticSize=Enum.AutomaticSize.Y; tb.Font=Enum.Font.Code; tb.TextSize=13; tb.MultiLine=true; tb.ClearTextOnFocus=false; tb.PlaceholderText="Paste here..."; tb.TextXAlignment=Enum.TextXAlignment.Left; tb.TextYAlignment=Enum.TextYAlignment.Top; tb.Size=UDim2.new(1,0,0,0); UI.MainMappingTextBox=tb
     tb:GetPropertyChangedSignal("Text"):Connect(function() s.CanvasSize = UDim2.new(0,0,0,tb.AbsoluteSize.Y) end)
-    local btn = Instance.new("TextButton",f); btn.Name="Primary"; btn.LayoutOrder=4; btn.Text="Import"; btn.Font=Enum.Font.GothamBold; btn.TextSize=16; btn.Size=UDim2.new(1,0,0,40); UI.MainImportButton=btn
+    local btn = Instance.new("TextButton",f); btn.Name="Primary"; btn.LayoutOrder=4; btn.Text="Import"; UI.MainImportButton=btn
     local st = Instance.new("TextLabel",f); st.Name="Label"; st.LayoutOrder=5; st.Text=""; st.Font=Enum.Font.Gotham; st.TextSize=12; st.BackgroundTransparency=1; st.TextXAlignment=Enum.TextXAlignment.Center; st.Size=UDim2.new(1,0,0,20); UI.MainStatusLabel=st
     local sup = Instance.new("TextLabel",f); sup.Name="Support"; sup.LayoutOrder=6; sup.Text="Contact .ludio. on Discord for support/errors"; sup.Font=Enum.Font.Gotham; sup.TextSize=10; sup.BackgroundTransparency=1; sup.Size=UDim2.new(1,0,0,20); sup.TextXAlignment=Enum.TextXAlignment.Center; UI.MainSupportLabel=sup
     return btn, tb, st
@@ -68,7 +78,7 @@ function createSettingsUI(widget)
     local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,10); l.SortOrder=Enum.SortOrder.LayoutOrder
     local t = Instance.new("TextLabel",f); t.Name="Title"; t.LayoutOrder=1; t.Text="Settings"; t.Size=UDim2.new(1,0,0,24); t.Font=Enum.Font.GothamBold; t.TextSize=22; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsTitle=t
     local al = Instance.new("TextLabel",f); al.Name="Label"; al.LayoutOrder=2; al.Text="Asset Folder Name"; al.Size=UDim2.new(1,0,0,18); al.Font=Enum.Font.Gotham; al.TextSize=14; al.BackgroundTransparency=1; al.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsAssetLabel=al
-    local at = Instance.new("TextBox",f); at.Name="TextBox"; at.LayoutOrder=3; at.Text=Config.ASSET_FOLDER_NAME; at.Size=UDim2.new(1,0,0,35); at.Font=Enum.Font.Code; UI.SettingsAssetText=at; at.FocusLost:Connect(function() Config.ASSET_FOLDER_NAME=at.Text end)
+    local at = Instance.new("TextBox",f); at.Name="TextBox"; at.LayoutOrder=3; at.Text=Config.ASSET_FOLDER_NAME; at.Size=UDim2.new(1,0,0,35); at.Font=Enum.Font.Code; at.TextScaled=true; UI.SettingsAssetText=at; at.FocusLost:Connect(function() Config.ASSET_FOLDER_NAME=at.Text end)
     local cc = Instance.new("TextButton",f); cc.Name="Secondary"; cc.LayoutOrder=4; cc.Size=UDim2.new(1,0,0,35); cc.Text="Auto Center UI: "..(Config.AUTO_CENTER_UI and "On" or "Off"); UI.SettingsCenterCheck=cc; cc.MouseButton1Click:Connect(function() Config.AUTO_CENTER_UI=not Config.AUTO_CENTER_UI; cc.Text="Auto Center UI: "..(Config.AUTO_CENTER_UI and "On" or "Off") end)
     local tl = Instance.new("TextLabel",f); tl.Name="Label"; tl.LayoutOrder=5; tl.Text="Theme"; tl.Size=UDim2.new(1,0,0,18); tl.Font=Enum.Font.Gotham; tl.TextSize=14; tl.BackgroundTransparency=1; tl.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsThemeLabel=tl
     local df = Instance.new("Frame",f); df.Name="DropdownFrame"; df.LayoutOrder=6; df.Size=UDim2.new(1,0,0,35); df.BackgroundTransparency=1
@@ -83,7 +93,7 @@ function populatePromptUI(widget, title, text, onYes, onNo)
     for _,c in ipairs(widget:GetChildren()) do c:Destroy() end
     local f = Instance.new("Frame"); f.Name="PromptFrame"; f.Size=UDim2.fromScale(1,1); f.Parent=widget; UI.PromptFrame=f
     local p = Instance.new("UIPadding",f); p.PaddingLeft,p.PaddingRight,p.PaddingTop,p.PaddingBottom=UDim.new(0,15),UDim.new(0,15),UDim.new(0,15),UDim.new(0,15)
-    local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,15); l.SortOrder=Enum.SortOrder.LayoutOrder; l.HorizontalAlignment=Enum.HorizontalAlignment.Center
+    local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,15); l.SortOrder=Enum.SortOrder.LayoutOrder; l.HorizontalAlignment=Enum.HorizontalAlignment.Center; l.VerticalAlignment=Enum.VerticalAlignment.Center
     local t = Instance.new("TextLabel",f); t.Name="Title"; t.LayoutOrder=1; t.Text=title; t.Size=UDim2.new(1,0,0,24); t.Font=Enum.Font.GothamBold; t.TextSize=22; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Center; UI.PromptTitle=t
     local i = Instance.new("TextLabel",f); i.Name="Label"; i.LayoutOrder=2; i.Text=text; i.Size=UDim2.new(1,0,0,60); i.Font=Enum.Font.Gotham; i.TextSize=14; i.TextWrapped=true; i.BackgroundTransparency=1; i.TextXAlignment=Enum.TextXAlignment.Center; UI.PromptText=i
     local bf = Instance.new("Frame",f); bf.Name="ButtonFrame"; bf.LayoutOrder=3; bf.Size=UDim2.new(1,0,0,40); bf.BackgroundTransparency=1
@@ -110,17 +120,15 @@ local toolbar = plugin:CreateToolbar("Framify")
 local mainPluginButton = toolbar:CreateButton("Framify Importer", "Open Framify Importer", "rbxassetid://123456789")
 local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://3926307971")
 
-local mainWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, false, 360, 550, 360, 550)
-local mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", mainWidgetInfo)
+local mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, false, 360, 550, 360, 550))
 mainWidget.Title = "Framify Importer"
 local importBtn, mappingTextBox, statusLabel = createMainUI(mainWidget)
 
-local settingsWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, false, 320, 420, 320, 420)
-local settingsWidget = plugin:CreateDockWidgetPluginGui("FramifySettings", settingsWidgetInfo)
+local settingsWidget = plugin:CreateDockWidgetPluginGui("FramifySettings", DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, false, 320, 420, 320, 420))
 settingsWidget.Title = "Framify Settings"
 createSettingsUI(settingsWidget)
 
-local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 380, 220, 380, 220)
+local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 400, 240, 400, 240)
 local promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
 promptWidget.Title = "Framify Prompt"
 
@@ -135,8 +143,11 @@ importBtn.MouseButton1Click:Connect(function()
     local requiredAssets = collectAssetIds(data)
     if #requiredAssets > 0 then
         local missingAssets, err = verifyAssets(requiredAssets)
-        if err then statusLabel.Text = "Error: " .. err; return end
-        populatePromptUI(promptWidget, "Image Assets Required", "This UI requires images that appear to be uploaded. Proceed with import?",
+        if #missingAssets > 0 then
+            statusLabel.Text = "Error: " .. err
+            return
+        end
+        populatePromptUI(promptWidget, "Image Assets Found", "This UI requires images that appear to be uploaded. Proceed with import?",
             function() performImport(data, statusLabel) end,
             function() statusLabel.Text = "Import cancelled." end
         )
