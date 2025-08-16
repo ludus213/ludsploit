@@ -214,18 +214,21 @@
     };
 
     window.onmessage = event => {
-      const message = event.data.pluginMessage;
-      if (message.type === 'export-result') {
-        mappingStringTextarea.value = message.mappingString;
-        resultSection.classList.add('visible');
-        exportButton.innerText = "Export Selection";
-        exportButton.disabled = false;
+      // Add a guard clause to ensure the message is from our plugin
+      if (event.data.pluginMessage) {
+        const message = event.data.pluginMessage;
+        if (message.type === 'export-result') {
+          mappingStringTextarea.value = message.mappingString;
+          resultSection.classList.add('visible');
+          exportButton.innerText = "Export Selection";
+          exportButton.disabled = false;
 
-        exportedImages = message.images;
-        if (exportedImages && exportedImages.length > 0) {
-            downloadButton.disabled = false;
-        } else {
-            downloadButton.disabled = true;
+          exportedImages = message.images;
+          if (exportedImages && exportedImages.length > 0) {
+              downloadButton.disabled = false;
+          } else {
+              downloadButton.disabled = true;
+          }
         }
       }
     };
