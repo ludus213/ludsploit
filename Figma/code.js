@@ -1,7 +1,7 @@
 figma.showUI(__html__, { width: 320, height: 520 });
 
 // A map to store image data to handle '#' tag for asset reuse
-const imageAssetMap = new Map<string, Uint8Array>();
+const imageAssetMap = new Map();
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'export') {
@@ -30,11 +30,11 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
-async function processNode(node: SceneNode, assetMap: Map<string, Uint8Array>): Promise<any> {
+async function processNode(node, assetMap) {
   const tags = parseTags(node.name);
   const assetId = parseAssetId(node.name);
 
-  const nodeData: any = {
+  const nodeData = {
     id: node.id,
     name: node.name,
     type: node.type,
@@ -77,18 +77,18 @@ async function processNode(node: SceneNode, assetMap: Map<string, Uint8Array>): 
   return nodeData;
 }
 
-function parseTags(name: string): string[] {
+function parseTags(name) {
     const nameWithoutId = name.split('#')[0];
     return nameWithoutId.split('_').slice(1).filter(t => t);
 }
 
-function parseAssetId(name: string): string | null {
+function parseAssetId(name) {
     const match = name.match(/#(\w+)/);
     return match ? match[1] : null;
 }
 
-function getNodeProperties(node: SceneNode): any {
-  const properties: any = {
+function getNodeProperties(node) {
+  const properties = {
     size: { x: node.width, y: node.height },
     position: { x: node.x, y: node.y },
     rotation: node.rotation,
