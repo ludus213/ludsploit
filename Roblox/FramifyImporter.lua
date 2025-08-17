@@ -1380,7 +1380,7 @@ function createColorEditorUI(parent, theme, options)
         selectedKeypointIndex = 1
     }
     state.editingProperty = "Primary"
-    state.h, state.s, state.v = Color.toHSV(theme[state.editingProperty])
+    state.h, state.s, state.v = Color3.toHSV(theme[state.editingProperty])
 
     local renderGradient
 
@@ -1470,7 +1470,7 @@ function createColorEditorUI(parent, theme, options)
     for _, swatch in ipairs(swatchFrame:GetChildren()) do
         if swatch:IsA("TextButton") then
             swatch.MouseButton1Click:Connect(function()
-                h, s, v = Color.toHSV(swatch.BackgroundColor3)
+                state.h, state.s, state.v = Color3.toHSV(swatch.BackgroundColor3)
                 updateColor()
             end)
         end
@@ -1636,7 +1636,7 @@ function createGradientEditor(parent, theme, state, onStateChanged)
             marker.MouseButton1Click:Connect(function()
                 state.selectedKeypointIndex = i
                 local color = state.keypoints[i].Value
-                state.h, state.s, state.v = Color.toHSV(color)
+                state.h, state.s, state.v = Color3.toHSV(color)
                 onStateChanged()
             end)
 
