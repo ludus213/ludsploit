@@ -1167,7 +1167,7 @@ local function playLoadingAnimation()
 
     -- Progress Bar Animation
     task.wait(0.2)
-    local progressTween = TweenService:.Create(UI.LoadingBar, TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+    local progressTween = TweenService:Create(UI.LoadingBar, TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
         Size = UDim2.fromScale(1, 1)
     })
     progressTween:Play()
