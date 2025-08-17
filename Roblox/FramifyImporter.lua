@@ -25,7 +25,9 @@ local Themes = {
     ["Midnight"] = { BG=Color3.fromRGB(18,18,18), Text=Color3.fromRGB(200,200,200), TextSecondary=Color3.fromRGB(110,110,110), Primary=Color3.fromRGB(80,80,80), Surface=Color3.fromRGB(25,25,25), Border=Color3.fromRGB(40,40,40), Danger=Color3.fromRGB(120,50,50) },
     ["High Contrast"] = { BG=Color3.fromRGB(20,20,20), Text=Color3.fromRGB(255,255,255), TextSecondary=Color3.fromRGB(180,180,180), Primary=Color3.fromRGB(0,122,255), Surface=Color3.fromRGB(40,40,40), Border=Color3.fromRGB(80,80,80), Danger=Color3.fromRGB(220,60,60) },
     ["Green"] = { BG=Color3.fromRGB(20,30,25), Text=Color3.fromRGB(200,255,220), TextSecondary=Color3.fromRGB(150,200,170), Primary=Color3.fromRGB(0,180,100), Surface=Color3.fromRGB(30,45,38), Border=Color3.fromRGB(50,100,75), Danger=Color3.fromRGB(180,80,80) },
-    ["Light"] = { BG=Color3.fromRGB(245,245,245), Text=Color3.fromRGB(20,20,20), TextSecondary=Color3.fromRGB(100,100,100), Primary=Color3.fromRGB(0,122,255), Surface=Color3.fromRGB(235,235,235), Border=Color3.fromRGB(200,200,200), Danger=Color3.fromRGB(220,60,60) }
+    ["Light"] = { BG=Color3.fromRGB(245,245,245), Text=Color3.fromRGB(20,20,20), TextSecondary=Color3.fromRGB(100,100,100), Primary=Color3.fromRGB(0,122,255), Surface=Color3.fromRGB(235,235,235), Border=Color3.fromRGB(200,200,200), Danger=Color3.fromRGB(220,60,60) },
+    ["Cyberpunk"] = { BG=Color3.fromRGB(21,21,30), Text=Color3.fromRGB(0,255,255), TextSecondary=Color3.fromRGB(170,170,170), Primary=Color3.fromRGB(255,0,255), Surface=Color3.fromRGB(31,31,46), Border=Color3.fromRGB(113,0,255), Danger=Color3.fromRGB(255,100,100) },
+    ["Nature"] = { BG=Color3.fromRGB(46,64,41), Text=Color3.fromRGB(232,230,227), TextSecondary=Color3.fromRGB(186,184,181), Primary=Color3.fromRGB(115,155,96), Surface=Color3.fromRGB(63,85,58), Border=Color3.fromRGB(145,124,111), Danger=Color3.fromRGB(190,80,70) }
 }
 
 local UI = {}
@@ -75,7 +77,7 @@ end
 
 function createLoadingUI(widget)
     local f = Instance.new("Frame"); f.Name="LoadingFrame"; f.Size=UDim2.fromScale(1,1); f.BackgroundColor3 = Themes[Config.THEME].BG; f.Parent=widget; UI.LoadingFrame=f
-    local logo = Instance.new("TextLabel",f); logo.Name="Logo"; logo.Text="F"; logo.Font=Enum.Font.GothamBold; logo.TextSize=120; logo.TextColor3 = Themes[Config.THEME].Primary; logo.BackgroundTransparency=1; logo.Size=UDim2.fromOffset(150,150); logo.AnchorPoint=Vector2.new(0.5,0.5); logo.Position=UDim2.fromScale(0.5,0.5); UI.LoadingLogo=logo
+    local logo = Instance.new("ImageLabel",f); logo.Name="Logo"; logo.Image="rbxassetid://127991582997910"; logo.BackgroundTransparency=1; logo.Size=UDim2.fromOffset(128,128); logo.AnchorPoint=Vector2.new(0.5,0.5); logo.Position=UDim2.fromScale(0.5,0.5); UI.LoadingLogo=logo
     local bar = Instance.new("Frame",f); bar.Name="LoadingBar"; bar.BackgroundColor3=Themes[Config.THEME].Surface; bar.BorderSizePixel=0; bar.Size=UDim2.new(0.5,0,0,5); bar.Position=UDim2.new(0.5,0,0.7,0); bar.AnchorPoint=Vector2.new(0.5,0.5); UI.LoadingBar=bar
     local progress = Instance.new("Frame",bar); progress.Name="Progress"; progress.BackgroundColor3=Themes[Config.THEME].Primary; progress.BorderSizePixel=0; progress.Size=UDim2.fromScale(0,1); UI.LoadingProgress=progress
     return f, logo, progress
@@ -87,8 +89,8 @@ function createMainUI(widget)
     local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,15); l.SortOrder=Enum.SortOrder.LayoutOrder; l.HorizontalAlignment=Enum.HorizontalAlignment.Center
     local header = Instance.new("Frame",f); header.Name="Header"; header.BackgroundTransparency=1; header.LayoutOrder=1; header.Size=UDim2.new(1,0,0,40); UI.MainHeader=header
     local p = Instance.new("UIPadding",header); p.PaddingLeft=UDim.new(0,10)
-    local hl = Instance.new("UIListLayout",header); hl.FillDirection=Enum.FillDirection.Horizontal; hl.VerticalAlignment=Enum.VerticalAlignment.Center; hl.HorizontalAlignment=Enum.HorizontalAlignment.Left; hl.Padding=UDim.new(0,10)
-    local logo = Instance.new("TextLabel",header); logo.Name="Logo"; logo.Text="F"; logo.Font=Enum.Font.GothamBold; logo.TextSize=32; UI.MainLogo=logo
+    local hl = Instance.new("UIListLayout",header); hl.FillDirection=Enum.FillDirection.Horizontal; hl.VerticalAlignment=Enum.VerticalAlignment.Center; hl.HorizontalAlignment=Enum.HorizontalAlignment.Left; hl.Padding=UDim.new(0,15)
+    local logo = Instance.new("ImageLabel",header); logo.Name="Logo"; logo.Image="rbxassetid://127991582997910"; logo.BackgroundTransparency=1; logo.Size=UDim2.fromOffset(32,32); UI.MainLogo=logo
     local t = Instance.new("TextLabel",header); t.Name="Title"; t.Text="Framify Importer"; t.Font=Enum.Font.GothamBold; t.TextSize=22; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Left; UI.MainTitle=t
     local i = Instance.new("TextLabel",f); i.Name="Instructions"; i.LayoutOrder=2; i.Text="Paste your mapping string below to begin."; i.Size=UDim2.new(1,0,0,18); i.Font=Enum.Font.Gotham; i.TextSize=14; i.TextWrapped=true; i.BackgroundTransparency=1; i.TextXAlignment=Enum.TextXAlignment.Center; UI.MainInstructions=i
     local s = Instance.new("ScrollingFrame",f); s.Name="TextScrollFrame"; s.LayoutOrder=3; s.Size=UDim2.new(1,0,1,-230); s.BorderSizePixel=1; s.BackgroundTransparency=1; UI.MainTextScrollFrame=s
@@ -276,10 +278,11 @@ local function playLoadingAnimation()
     -- Animate logo
     UI.MainLogo.Visible = false
     local finalLogoPosition = UI.MainLogo.AbsolutePosition
+    local finalLogoSize = UI.MainLogo.AbsoluteSize
     UI.MainLogo.Visible = true
 
     local logoMoveTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(finalLogoPosition.X, finalLogoPosition.Y) })
-    local logoResizeTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { TextSize = 32 })
+    local logoResizeTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(finalLogoSize.X, finalLogoSize.Y) })
 
     logoMoveTween:Play()
     logoResizeTween:Play()
