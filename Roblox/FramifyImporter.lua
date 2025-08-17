@@ -1100,7 +1100,7 @@ function performImport(data, statusLabel)
     local nodes = data.nodes or {}
     
     local referenceSize = data.referenceSize
-    if not referenceSize or not referenceSize.x or not referenceSqualor referenceSize.x <= 0 or referenceSize.y <= 0 then
+    if not referenceSize or not referenceSize.x or not referenceSize.y or referenceSize.x <= 0 or referenceSize.y <= 0 then
         referenceSize = { x = 1920, y = 1080 }
     end
     
@@ -1202,59 +1202,73 @@ local toolbar = plugin:CreateToolbar("Framify")
 local mainPluginButton = toolbar:CreateButton("Framify Importer", "Open Framify Importer", "rbxassetid://127991582997910")
 local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://93472476640298")
 
-local mainWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 380, 520, 380, 520)
-local mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", mainWidgetInfo)
-mainWidget.Title = "Framify Importer"
+local mainWidget, settingsWidget, promptWidget
+local isInitialized = false
 
-local loadingFrame, loadingLogo, loadingProgress = createLoadingUI(mainWidget)
-local importBtn, mappingTextBox, statusLabel, mainFrame, mainLogo = createMainUI(mainWidget)
+local function initializeUI()
+    if isInitialized then return end
 
-local settingsWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 320, 420, 320, 420)
-local settingsWidget = plugin:CreateDockWidgetPluginGui("FramifySettings", settingsWidgetInfo)
-settingsWidget.Title = "Framify Settings"
-createSettingsUI(settingsWidget)
+    local mainWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 380, 520, 380, 520)
+    mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", mainWidgetInfo)
+    mainWidget.Title = "Framify Importer"
 
-local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 340, 180, 340, 180)
-local promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
-promptWidget.Title = "Framify Prompt"
+    createLoadingUI(mainWidget)
+    local importBtn, mappingTextBox, statusLabel, _, _ = createMainUI(mainWidget)
 
-applyTheme(Config.THEME)
+    local settingsWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 320, 420, 320, 420)
+    settingsWidget = plugin:CreateDockWidgetPluginGui("FramifySettings", settingsWidgetInfo)
+    settingsWidget.Title = "Framify Settings"
+    createSettingsUI(settingsWidget)
 
-importBtn.MouseButton1Click:Connect(function()
-    statusLabel.Text = ""
-    local mappingString = mappingTextBox.Text
-    if mappingString == "" then
-        statusLabel.Text = "Error: Mapping string cannot be empty."
-        return
-    end
-    local success, data = pcall(function()
-        return HttpService:JSONDecode(mappingString)
-    end)
-    if not success or not data.nodes or not data.referenceSize then
-        statusLabel.Text = "Error: Invalid mapping string."
-        return
-    end
-    local requiredAssets = collectAssetIds(data.nodes)
-    if #requiredAssets > 0 then
-        local missingAssets, err = verifyAssets(requiredAssets)
-        if #missingAssets > 0 then
-            statusLabel.Text = "Error: " .. err
+    local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 340, 180, 340, 180)
+    promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
+    promptWidget.Title = "Framify Prompt"
+
+    applyTheme(Config.THEME)
+
+    importBtn.MouseButton1Click:Connect(function()
+        statusLabel.Text = ""
+        local mappingString = mappingTextBox.Text
+        if mappingString == "" then
+            statusLabel.Text = "Error: Mapping string cannot be empty."
             return
         end
-        populatePromptUI(promptWidget, "Image Assets Found", "This UI requires images that appear to be uploaded. Proceed with import?",
-            function()
-                performImport(data, statusLabel)
-            end,
-            function()
-                statusLabel.Text = "Import cancelled."
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(mappingString)
+        end)
+        if not success or not data.nodes or not data.referenceSize then
+            statusLabel.Text = "Error: Invalid mapping string."
+            return
+        end
+        local requiredAssets = collectAssetIds(data.nodes)
+        if #requiredAssets > 0 then
+            local missingAssets, err = verifyAssets(requiredAssets)
+            if #missingAssets > 0 then
+                statusLabel.Text = "Error: " .. err
+                return
             end
-        )
-    else
-        performImport(data, statusLabel)
-    end
-end)
+            populatePromptUI(promptWidget, "Image Assets Found", "This UI requires images that appear to be uploaded. Proceed with import?",
+                function()
+                    performImport(data, statusLabel)
+                end,
+                function()
+                    statusLabel.Text = "Import cancelled."
+                end
+            )
+        else
+            performImport(data, statusLabel)
+        end
+    end)
+
+    mainWidget.Enabled = false
+    settingsWidget.Enabled = false
+    promptWidget.Enabled = false
+
+    isInitialized = true
+end
 
 mainPluginButton.Click:Connect(function()
+    initializeUI()
     mainWidget.Enabled = not mainWidget.Enabled
     if mainWidget.Enabled then
         coroutine.wrap(playLoadingAnimation)()
@@ -1262,9 +1276,6 @@ mainPluginButton.Click:Connect(function()
 end)
 
 settingsPluginButton.Click:Connect(function()
+    initializeUI()
     settingsWidget.Enabled = not settingsWidget.Enabled
 end)
-
-mainWidget.Enabled = false
-settingsWidget.Enabled = false
-promptWidget.Enabled = false
