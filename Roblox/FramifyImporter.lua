@@ -59,14 +59,20 @@ function styleDropdown(theme)
         UI.SettingsThemeOptionsFrame.BorderColor3 = theme.Border
         for _, child in ipairs(UI.SettingsThemeOptionsFrame:GetChildren()) do
             if child:IsA("TextButton") then
+                child.BackgroundTransparency = 0
                 child.BackgroundColor3 = theme.Surface
                 child.TextColor3 = theme.Text
                 child.Font = Enum.Font.Gotham
-                local stroke = child:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
-                stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-                stroke.Color = theme.Border
-                stroke.Thickness = 1
-                stroke.Parent = child
+
+                child.MouseEnter:Connect(function()
+                    TweenService:Create(child, TweenInfo.new(0.1), { BackgroundColor3 = theme.Primary }):Play()
+                    child.TextColor3 = theme.BG
+                end)
+
+                child.MouseLeave:Connect(function()
+                    TweenService:Create(child, TweenInfo.new(0.1), { BackgroundColor3 = theme.Surface }):Play()
+                    child.TextColor3 = theme.Text
+                end)
             end
         end
     end
@@ -109,7 +115,7 @@ function createMainUI(widget)
     local header = Instance.new("Frame",f); header.Name="Header"; header.BackgroundTransparency=1; header.LayoutOrder=1; header.Size=UDim2.new(1,0,0,40); UI.MainHeader=header
     local p = Instance.new("UIPadding",header); p.PaddingLeft=UDim.new(0,10)
     local hl = Instance.new("UIListLayout",header); hl.FillDirection=Enum.FillDirection.Horizontal; hl.VerticalAlignment=Enum.VerticalAlignment.Center; hl.HorizontalAlignment=Enum.HorizontalAlignment.Left; hl.Padding=UDim.new(0,15)
-    local logo = Instance.new("ImageLabel",header); logo.Name="Logo"; logo.Image="rbxassetid://127991582997910"; logo.BackgroundTransparency=1; logo.Size=UDim2.fromOffset(32,32); UI.MainLogo=logo
+    local logo = Instance.new("ImageLabel"); logo.Name="Logo"; logo.Image="rbxassetid://127991582997910"; logo.BackgroundTransparency=1; logo.Size=UDim2.fromOffset(32,32); UI.MainLogo=logo
     local t = Instance.new("TextLabel",header); t.Name="Title"; t.Text="Framify Importer"; t.Font=Enum.Font.GothamBold; t.TextSize=22; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Left; UI.MainTitle=t
     local i = Instance.new("TextLabel",f); i.Name="Instructions"; i.LayoutOrder=2; i.Text="Paste your mapping string below to begin."; i.Size=UDim2.new(1,0,0,18); i.Font=Enum.Font.Gotham; i.TextSize=14; i.TextWrapped=true; i.BackgroundTransparency=1; i.TextXAlignment=Enum.TextXAlignment.Center; UI.MainInstructions=i
     local s = Instance.new("ScrollingFrame",f); s.Name="TextScrollFrame"; s.LayoutOrder=3; s.Size=UDim2.new(1,0,1,-230); s.BorderSizePixel=1; s.BackgroundTransparency=1; UI.MainTextScrollFrame=s
@@ -146,20 +152,24 @@ function createSettingsUI(widget)
     local df = Instance.new("Frame",f); df.Name="DropdownContainer"; df.LayoutOrder=7; df.Size=UDim2.new(1,0,0,35); df.BackgroundTransparency=1; df.ZIndex=10
     local d = Instance.new("TextButton",df); d:SetAttribute("StyleType", "Secondary"); d.Size=UDim2.fromScale(1,1); d.Text=Config.THEME; UI.SettingsThemeDropdown=d
 
-    local o = Instance.new("ScrollingFrame",f); o.Name="OptionsFrame"; o.LayoutOrder=8; o.ZIndex=20; o.Size=UDim2.new(1,0,0,125); o.Visible=false; UI.SettingsThemeOptionsFrame=o
+    local o = Instance.new("ScrollingFrame",f); o.Name="OptionsFrame"; o.LayoutOrder=8; o.ZIndex=20; o.Size=UDim2.new(1,0,0,0); o.ClipsDescendants=true; o.Visible=false; UI.SettingsThemeOptionsFrame=o
     local ol = Instance.new("UIListLayout",o); ol.Padding = UDim.new(0,5); ol.SortOrder = Enum.SortOrder.LayoutOrder
 
-    d.MouseButton1Click:Connect(function() o.Visible = not o.Visible end)
+    d.MouseButton1Click:Connect(function()
+        o.Visible = not o.Visible
+        local goalSize = o.Visible and UDim2.new(1,0,0,125) or UDim2.new(1,0,0,0)
+        TweenService:Create(o, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = goalSize }):Play()
+    end)
 
     for name,_ in pairs(Themes) do
         local b=Instance.new("TextButton",o)
         b.Size=UDim2.new(1,0,0,30)
         b.Text=name
-        b.BackgroundTransparency = 1
         UI["ThemeOption_"..name]=b
         b.MouseButton1Click:Connect(function()
             d.Text=name
             o.Visible=false
+            o.Size = UDim2.new(1,0,0,0)
             applyTheme(name)
         end)
     end
@@ -274,48 +284,43 @@ importBtn.MouseButton1Click:Connect(function()
 end)
 
 local function playLoadingAnimation()
-    mainFrame.Visible = false
-    loadingFrame.Visible = true
-    loadingFrame.BackgroundTransparency = 1
-    loadingLogo.Position = UDim2.fromScale(0.5, 0.5)
-    loadingLogo.TextSize = 120
-    loadingProgress.Size = UDim2.fromScale(0, 1)
+    UI.MainFrame.Visible = false
+    UI.LoadingFrame.Visible = true
+    UI.LoadingFrame.BackgroundTransparency = 1
+    UI.LoadingLogo.Position = UDim2.fromScale(0.5, 0.5)
+    UI.LoadingLogo.Size = UDim2.fromOffset(128,128)
+    UI.LoadingProgress.Size = UDim2.fromScale(0, 1)
 
-    -- Fade in loading screen
-    TweenService:Create(loadingFrame, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
+    TweenService:Create(UI.LoadingFrame, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
     task.wait(0.3)
 
-    -- Animate loading bar
     local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    local progressTween = TweenService:Create(loadingProgress, tweenInfo, { Size = UDim2.fromScale(1, 1) })
+    local progressTween = TweenService:Create(UI.LoadingProgress, tweenInfo, { Size = UDim2.fromScale(1, 1) })
     progressTween:Play()
 
-    -- Wait for loading bar to finish
     progressTween.Completed:Wait()
     task.wait(0.2)
 
-    -- Animate logo
-    UI.MainLogo.Visible = false
-    local finalLogoPosition = UI.MainLogo.AbsolutePosition
-    local finalLogoSize = UI.MainLogo.AbsoluteSize
-    UI.MainLogo.Visible = true
+    UI.MainLogo.Parent = UI.MainHeader
+    UI.MainFrame.Visible = true
+    task.wait()
+    local finalPosition = UI.MainLogo.AbsolutePosition
+    local finalSize = UI.MainLogo.AbsoluteSize
+    UI.MainFrame.Visible = false
+    UI.MainLogo.Parent = nil
 
-    local logoMoveTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(finalLogoPosition.X, finalLogoPosition.Y) })
-    local logoResizeTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(finalLogoSize.X, finalLogoSize.Y) })
+    local logoMoveTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(finalPosition.X, finalPosition.Y) })
+    local logoResizeTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(finalSize.X,finalSize.Y) })
 
     logoMoveTween:Play()
     logoResizeTween:Play()
 
     logoMoveTween.Completed:Wait()
 
-    UI.LoadingLogo:Destroy()
-    UI.MainLogo.Visible = true
-
+    UI.LoadingLogo.Visible = false
+    UI.MainLogo.Parent = UI.MainHeader
     UI.MainFrame.Visible = true
     UI.MainTitle.Text = ""
-
-    -- Fade out loading screen and reveal title
-    TweenService:Create(UI.LoadingFrame, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
 
     local titleText = "Framify Importer"
     for i = 1, #titleText do
