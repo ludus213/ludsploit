@@ -16,7 +16,7 @@ local Config = {
     TARGET_SCREEN_GUI = "FramifyImport",
     ASSET_FOLDER_NAME = "FramifyAssets",
     CREATE_BEHAVIOR_SCRIPTS = true,
-    AUTO_CENTER_UI = true,
+    SHOW_ANCHOR_POPUP = true,
     AUTO_SCALE = true,
     THEME = "Dracula"
 }
@@ -553,7 +553,7 @@ function createSettingsUI(widget)
         }):Play()
     end)
 
-    UI.SettingsCenterCheck = createToggle(4, "Auto Center UI", "AUTO_CENTER_UI")
+    UI.SettingsAnchorPopupCheck = createToggle(4, "Show Anchoring Popup", "SHOW_ANCHOR_POPUP")
     UI.SettingsScaleCheck = createToggle(5, "Auto Scale UI", "AUTO_SCALE")
 
     local tl = Instance.new("TextLabel", f)
@@ -1121,13 +1121,11 @@ function performImport(data, statusLabel)
 
     local importParent = mainContainer
     
-    if Config.AUTO_CENTER_UI then
-        mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-        mainContainer.Position = UDim2.fromScale(0.5, 0.5)
-    end
+    mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainContainer.Position = UDim2.fromScale(0.5, 0.5)
 
     mainContainer.Parent = targetGui
-    
+
     local aspectRatio = rootRefSize.X / rootRefSize.Y
     local constraint = Instance.new("UIAspectRatioConstraint")
     constraint.AspectRatio = aspectRatio
@@ -1141,6 +1139,84 @@ function performImport(data, statusLabel)
     targetGui.Parent = StarterGui
     Selection:Set({ targetGui })
     statusLabel.Text = "Import successful!"
+
+    if Config.SHOW_ANCHOR_POPUP then
+        populateAnchorEditorUI(anchorEditorWidget, mainContainer)
+        anchorEditorWidget.Enabled = true
+    end
+end
+
+function populateAnchorEditorUI(widget, targetElement)
+    for _, child in ipairs(widget:GetChildren()) do
+        child:Destroy()
+    end
+
+    widget.Title = "Anchor Editor"
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.fromScale(1, 1)
+    mainFrame.BackgroundColor3 = Themes[Config.THEME].BG
+    mainFrame.Parent = widget
+
+    local padding = Instance.new("UIPadding", mainFrame)
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.PaddingRight = UDim.new(0, 12)
+    padding.PaddingTop = UDim.new(0, 12)
+    padding.PaddingBottom = UDim.new(0, 12)
+
+    local listLayout = Instance.new("UIListLayout", mainFrame)
+    listLayout.Padding = UDim.new(0, 10)
+    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+    local title = Instance.new("TextLabel", mainFrame)
+    title.Name = "Title"
+    title.Text = "Set Anchor Point"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.Size = UDim2.new(1, 0, 0, 20)
+    title.TextColor3 = Themes[Config.THEME].Text
+    title.BackgroundTransparency = 1
+
+    local gridFrame = Instance.new("Frame", mainFrame)
+    gridFrame.Size = UDim2.new(1, 0, 0, 120)
+    gridFrame.BackgroundTransparency = 1
+
+    local gridLayout = Instance.new("UIGridLayout", gridFrame)
+    gridLayout.CellSize = UDim2.fromScale(0.3, 0.3)
+    gridLayout.CellPadding = UDim2.fromScale(0.05, 0.05)
+    gridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    gridLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local anchors = {
+        { name = "┌", value = Vector2.new(0, 0) }, { name = "┬", value = Vector2.new(0.5, 0) }, { name = "┐", value = Vector2.new(1, 0) },
+        { name = "├", value = Vector2.new(0, 0.5) }, { name = "+", value = Vector2.new(0.5, 0.5) }, { name = "┤", value = Vector2.new(1, 0.5) },
+        { name = "└", value = Vector2.new(0, 1) }, { name = "┴", value = Vector2.new(0.5, 1) }, { name = "┘", value = Vector2.new(1, 1) }
+    }
+
+    for _, anchorInfo in ipairs(anchors) do
+        local btn = Instance.new("TextButton")
+        btn.Name = anchorInfo.name
+        btn.Text = anchorInfo.name
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 24
+        btn.Parent = gridFrame
+
+        styleButton(btn, "Secondary", Themes[Config.THEME])
+
+        btn.MouseButton1Click:Connect(function()
+            targetElement.AnchorPoint = anchorInfo.value
+        end)
+    end
+
+    local doneBtn = Instance.new("TextButton", mainFrame)
+    doneBtn.Name = "DoneButton"
+    doneBtn.Text = "Done"
+    doneBtn.Size = UDim2.new(1, 0, 0, 36)
+    styleButton(doneBtn, "Primary", Themes[Config.THEME])
+
+    doneBtn.MouseButton1Click:Connect(function()
+        widget.Enabled = false
+    end)
 end
 
 local function playLoadingAnimation()
@@ -1208,7 +1284,7 @@ local toolbar = plugin:CreateToolbar("Framify")
 local mainPluginButton = toolbar:CreateButton("Framify Importer", "Open Framify Importer", "rbxassetid://127991582997910")
 local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://93472476640298")
 
-local mainWidget, settingsWidget, promptWidget
+local mainWidget, settingsWidget, promptWidget, anchorEditorWidget
 local isInitialized = false
 
 local function initializeUI()
@@ -1229,6 +1305,10 @@ local function initializeUI()
     local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 340, 180, 340, 180)
     promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
     promptWidget.Title = "Framify Prompt"
+
+    local anchorEditorWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 200, 240, 200, 240)
+    anchorEditorWidget = plugin:CreateDockWidgetPluginGui("FramifyAnchorEditor", anchorEditorWidgetInfo)
+    anchorEditorWidget.Title = "Anchor Editor"
 
     applyTheme(Config.THEME)
 
@@ -1269,6 +1349,7 @@ local function initializeUI()
     mainWidget.Enabled = false
     settingsWidget.Enabled = false
     promptWidget.Enabled = false
+    anchorEditorWidget.Enabled = false
 
     isInitialized = true
 end
