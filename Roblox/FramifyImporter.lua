@@ -63,7 +63,12 @@ function applyTheme(themeName)
         end
         if element:IsA("TextButton") then
             local style = element:GetAttribute("StyleType")
-            if style then styleButton(element, style, theme) end
+            if style then
+                styleButton(element, style, theme)
+                if name:match("ThemeOption_") then
+                    element.TextColor3 = theme.Text
+                end
+            end
         end
     end
 end
@@ -255,23 +260,33 @@ local function playLoadingAnimation()
 
     -- Animate logo
     local mainHeader = mainFrame:FindFirstChild("Header")
-    local finalLogoPosition = mainHeader.AbsolutePosition + Vector2.new(mainLogo.AbsoluteSize.X / 2, mainHeader.AbsoluteSize.Y / 2)
+    mainLogo.Parent = nil -- unparent from header to get correct position
+    local finalLogoPosition = mainHeader.AbsolutePosition + Vector2.new(15, mainHeader.AbsoluteSize.Y / 2)
 
-    local logoMoveTween = TweenService:Create(loadingLogo, TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(finalLogoPosition.X, finalLogoPosition.Y) })
-    local logoResizeTween = TweenService:Create(loadingLogo, TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), { TextSize = 32 })
+    local logoMoveTween = TweenService:Create(loadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(finalLogoPosition.X, finalLogoPosition.Y) })
+    local logoResizeTween = TweenService:Create(loadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { TextSize = 32 })
 
     logoMoveTween:Play()
     logoResizeTween:Play()
 
     logoMoveTween.Completed:Wait()
 
-    -- Fade out loading screen
-    TweenService:Create(loadingFrame, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
-    task.wait(0.3)
-
-    loadingFrame.Visible = false
-    mainFrame.Visible = true
     mainLogo.Parent = mainHeader
+    mainLogo.Position = UDim2.fromScale(0, 0)
+    mainLogo.AnchorPoint = Vector2.new(0, 0.5)
+    loadingLogo:Destroy()
+
+    mainFrame.Visible = true
+    mainTitle.Text = ""
+
+    -- Fade out loading screen and reveal title
+    TweenService:Create(loadingFrame, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
+
+    local titleText = "Framify Importer"
+    for i = 1, #titleText do
+        mainTitle.Text = string.sub(titleText, 1, i)
+        task.wait(0.05)
+    end
 end
 
 mainPluginButton.Click:Connect(function()
