@@ -1118,9 +1118,9 @@ function performImport(data, statusLabel)
 
     -- Size the container to fill the screen, but maintain aspect ratio
     mainContainer.Size = UDim2.fromScale(1, 1)
-
-    local importParent = mainContainer
     
+    local importParent = mainContainer
+
     mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
     mainContainer.Position = UDim2.fromScale(0.5, 0.5)
 
@@ -1141,17 +1141,128 @@ function performImport(data, statusLabel)
     statusLabel.Text = "Import successful!"
 
     if Config.SHOW_ANCHOR_POPUP then
-        populateAnchorEditorUI(anchorEditorWidget, mainContainer)
-        anchorEditorWidget.Enabled = true
+        if not finalizationWidget then
+            local finalizationWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 220, 280, 220, 280)
+            finalizationWidget = plugin:CreateDockWidgetPluginGui("FramifyFinalization", finalizationWidgetInfo)
+            finalizationWidget.Title = "Import Finalization"
+        end
+        populateFinalizationUI(finalizationWidget, mainContainer)
+        finalizationWidget.Enabled = true
     end
 end
 
-function populateAnchorEditorUI(widget, targetElement)
+function createSlider(parent, theme, options)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 50)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+
+    local listLayout = Instance.new("UIListLayout", container)
+    listLayout.Padding = UDim.new(0, 4)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local topRow = Instance.new("Frame")
+    topRow.Size = UDim2.new(1, 0, 0, 16)
+    topRow.BackgroundTransparency = 1
+    topRow.Parent = container
+    topRow.LayoutOrder = 1
+
+    local topRowLayout = Instance.new("UIListLayout", topRow)
+    topRowLayout.FillDirection = Enum.FillDirection.Horizontal
+    topRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local label = Instance.new("TextLabel", topRow)
+    label.Name = "Label"
+    label.Text = options.text
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.TextColor3 = theme.Text
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Size = UDim2.new(0.7, -4, 1, 0)
+
+    local valueLabel = Instance.new("TextLabel", topRow)
+    valueLabel.Name = "ValueLabel"
+    valueLabel.Text = string.format("%.2f", options.default)
+    valueLabel.Font = Enum.Font.Code
+    valueLabel.TextSize = 12
+    valueLabel.TextColor3 = theme.Primary
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valueLabel.Size = UDim2.new(0.3, 0, 1, 0)
+
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, 0, 0, 20)
+    sliderFrame.BackgroundColor3 = theme.Surface
+    sliderFrame.Parent = container
+    sliderFrame.LayoutOrder = 2
+
+    local corner = Instance.new("UICorner", sliderFrame)
+    corner.CornerRadius = UDim.new(0, 4)
+
+    local bar = Instance.new("Frame", sliderFrame)
+    bar.BackgroundColor3 = theme.Primary
+    bar.BorderSizePixel = 0
+    bar.Size = UDim2.new((options.default - options.min) / (options.max - options.min), 0, 1, 0)
+
+    local barCorner = Instance.new("UICorner", bar)
+    barCorner.CornerRadius = UDim.new(0, 4)
+
+    local thumb = Instance.new("Frame", sliderFrame)
+    thumb.Size = UDim2.new(0, 12, 0, 12)
+    thumb.AnchorPoint = Vector2.new(0.5, 0.5)
+    thumb.Position = UDim2.new(bar.Size.X.Scale, 0, 0.5, 0)
+    thumb.BackgroundColor3 = theme.Text
+    thumb.BorderSizePixel = 2
+    thumb.BorderColor3 = theme.Primary
+
+    local thumbCorner = Instance.new("UICorner", thumb)
+    thumbCorner.CornerRadius = UDim.new(1, 0)
+
+    local dragging = false
+
+    local function updateSlider(inputPos)
+        if not dragging then return end
+        local scale = math.clamp((inputPos.X - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
+        local value = options.min + scale * (options.max - options.min)
+
+        bar.Size = UDim2.new(scale, 0, 1, 0)
+        thumb.Position = UDim2.new(scale, 0, 0.5, 0)
+        valueLabel.Text = string.format("%.2f", value)
+
+        if options.onChanged then
+            options.onChanged(value)
+        end
+    end
+
+    sliderFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            updateSlider(input.Position)
+        end
+    end)
+
+    sliderFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    sliderFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            updateSlider(input.Position)
+        end
+    end)
+
+    return container
+end
+
+function populateFinalizationUI(widget, targetElement)
     for _, child in ipairs(widget:GetChildren()) do
         child:Destroy()
     end
 
-    widget.Title = "Anchor Editor"
+    widget.Title = "Import Finalization"
 
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.fromScale(1, 1)
@@ -1167,19 +1278,22 @@ function populateAnchorEditorUI(widget, targetElement)
     local listLayout = Instance.new("UIListLayout", mainFrame)
     listLayout.Padding = UDim.new(0, 10)
     listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    local title = Instance.new("TextLabel", mainFrame)
-    title.Name = "Title"
-    title.Text = "Set Anchor Point"
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 14
-    title.Size = UDim2.new(1, 0, 0, 20)
-    title.TextColor3 = Themes[Config.THEME].Text
-    title.BackgroundTransparency = 1
+    local anchorTitle = Instance.new("TextLabel", mainFrame)
+    anchorTitle.Name = "Title"
+    anchorTitle.Text = "Anchor Point"
+    anchorTitle.Font = Enum.Font.GothamBold
+    anchorTitle.TextSize = 14
+    anchorTitle.Size = UDim2.new(1, 0, 0, 20)
+    anchorTitle.TextColor3 = Themes[Config.THEME].Text
+    anchorTitle.BackgroundTransparency = 1
+    anchorTitle.LayoutOrder = 1
 
     local gridFrame = Instance.new("Frame", mainFrame)
     gridFrame.Size = UDim2.new(1, 0, 0, 120)
     gridFrame.BackgroundTransparency = 1
+    gridFrame.LayoutOrder = 2
 
     local gridLayout = Instance.new("UIGridLayout", gridFrame)
     gridLayout.CellSize = UDim2.fromScale(0.3, 0.3)
@@ -1208,11 +1322,23 @@ function populateAnchorEditorUI(widget, targetElement)
         end)
     end
 
+    local scaleSlider = createSlider(mainFrame, Themes[Config.THEME], {
+        text = "Scale",
+        min = 0.1,
+        max = 10,
+        default = 1,
+        onChanged = function(value)
+            targetElement.Size = UDim2.fromScale(value, value)
+        end
+    })
+    scaleSlider.LayoutOrder = 3
+
     local doneBtn = Instance.new("TextButton", mainFrame)
     doneBtn.Name = "DoneButton"
     doneBtn.Text = "Done"
     doneBtn.Size = UDim2.new(1, 0, 0, 36)
     styleButton(doneBtn, "Primary", Themes[Config.THEME])
+    doneBtn.LayoutOrder = 4
 
     doneBtn.MouseButton1Click:Connect(function()
         widget.Enabled = false
@@ -1284,7 +1410,7 @@ local toolbar = plugin:CreateToolbar("Framify")
 local mainPluginButton = toolbar:CreateButton("Framify Importer", "Open Framify Importer", "rbxassetid://127991582997910")
 local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://93472476640298")
 
-local mainWidget, settingsWidget, promptWidget, anchorEditorWidget
+local mainWidget, settingsWidget, promptWidget, finalizationWidget
 local isInitialized = false
 
 local function initializeUI()
@@ -1305,10 +1431,6 @@ local function initializeUI()
     local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 340, 180, 340, 180)
     promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
     promptWidget.Title = "Framify Prompt"
-
-    local anchorEditorWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 200, 240, 200, 240)
-    anchorEditorWidget = plugin:CreateDockWidgetPluginGui("FramifyAnchorEditor", anchorEditorWidgetInfo)
-    anchorEditorWidget.Title = "Anchor Editor"
 
     applyTheme(Config.THEME)
 
@@ -1349,7 +1471,6 @@ local function initializeUI()
     mainWidget.Enabled = false
     settingsWidget.Enabled = false
     promptWidget.Enabled = false
-    anchorEditorWidget.Enabled = false
 
     isInitialized = true
 end
