@@ -182,6 +182,7 @@ function createLoadingUI(widget)
     container.Name = "LoadingContainer"
     container.Size = UDim2.fromScale(1, 1)
     container.BackgroundTransparency = 1
+    container.ZIndex = 10
     container.Parent = widget
     UI.LoadingContainer = container
 
@@ -293,6 +294,13 @@ function createLoadingUI(widget)
 end
 
 function createMainUI(widget)
+    local containerFrame = Instance.new("Frame")
+    containerFrame.Name = "MainFrameContainer"
+    containerFrame.Size = UDim2.fromScale(1, 1)
+    containerFrame.BackgroundTransparency = 1
+    containerFrame.ZIndex = 1
+    containerFrame.Parent = widget
+
     local cg = Instance.new("CanvasGroup")
     cg.Name = "MainFrame"
     cg.Size = UDim2.fromScale(1, 1)
@@ -300,7 +308,7 @@ function createMainUI(widget)
     cg.GroupTransparency = 1
     cg.AnchorPoint = Vector2.new(0.5, 0.5)
     cg.Position = UDim2.new(0.5, 0, 0.52, 0)
-    cg.Parent = widget
+    cg.Parent = containerFrame
     UI.MainFrame = cg
 
     local p = Instance.new("UIPadding", cg)
@@ -1504,12 +1512,19 @@ function createColorEditorUI(parent, theme, options)
     favTitle.TextColor3 = theme.Text
     favTitle.BackgroundTransparency = 1
     favTitle.TextXAlignment = Enum.TextXAlignment.Left
-    favTitle.Size = UDim2.new(1, -24, 1, 0)
+    favTitle.Size = UDim2.new(1, -52, 1, 0)
 
-    local saveBtn = Instance.new("TextButton", favTitleFrame)
-    saveBtn.Text = "+"
-    saveBtn.Size = UDim2.new(0, 20, 1, 0)
-    styleButton(saveBtn, "Secondary", theme)
+    local saveColorBtn = Instance.new("TextButton", favTitleFrame)
+    saveColorBtn.Text = "C+"
+    saveColorBtn.ToolTip = "Save Current Color"
+    saveColorBtn.Size = UDim2.new(0, 22, 1, 0)
+    styleButton(saveColorBtn, "Secondary", theme)
+
+    local saveGradientBtn = Instance.new("TextButton", favTitleFrame)
+    saveGradientBtn.Text = "G+"
+    saveGradientBtn.ToolTip = "Save Current Gradient"
+    saveGradientBtn.Size = UDim2.new(0, 22, 1, 0)
+    styleButton(saveGradientBtn, "Secondary", theme)
 
     local favoritesFrame = Instance.new("ScrollingFrame", favoritesContainer)
     favoritesFrame.Size = UDim2.new(1, 0, 1, -24)
@@ -1556,11 +1571,72 @@ function createColorEditorUI(parent, theme, options)
         end
     end
 
-    saveBtn.MouseButton1Click:Connect(function()
-        local favs = plugin:GetSetting("favorites") or {}
-        local newFav = { isGradient = false, value = { r = state.h, g = state.s, b = state.v } } -- simplified for now
+    local function renderFavorites()
+        for _, child in ipairs(favoritesFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+
+        local favsJSON = plugin:GetSetting("favorites") or "[]"
+        local favs = HttpService:JSONDecode(favsJSON)
+
+        for _, favData in ipairs(favs) do
+            local swatch = Instance.new("TextButton")
+            swatch.Text = ""
+            swatch.Size = UDim2.fromOffset(22, 22)
+            swatch.Parent = favoritesFrame
+
+            if favData.isGradient then
+                local g = Instance.new("UIGradient", swatch)
+                local kps = {}
+                for _, kpData in ipairs(favData.value) do
+                    table.insert(kps, ColorSequenceKeypoint.new(kpData.time, Color3.new(kpData.r, kpData.g, kpData.b)))
+                end
+                g.Color = ColorSequence.new(kps)
+            else
+                swatch.BackgroundColor3 = Color3.new(favData.value.r, favData.value.g, favData.value.b)
+            end
+
+            swatch.MouseButton1Click:Connect(function()
+                if favData.isGradient then
+                    local kps = {}
+                    for _, kpData in ipairs(favData.value) do
+                        table.insert(kps, ColorSequenceKeypoint.new(kpData.time, Color3.new(kpData.r, kpData.g, kpData.b)))
+                    end
+                    state.keypoints = kps
+                    state.selectedKeypointIndex = 1
+                    local firstColor = state.keypoints[1].Value
+                    state.h, state.s, state.v = Color3.toHSV(firstColor)
+                    onStateChanged()
+                else
+                    state.h, state.s, state.v = Color3.toHSV(swatch.BackgroundColor3)
+                    onStateChanged()
+                end
+            end)
+        end
+    end
+
+    saveColorBtn.MouseButton1Click:Connect(function()
+        local favsJSON = plugin:GetSetting("favorites") or "[]"
+        local favs = HttpService:JSONDecode(favsJSON)
+        local currentColor = Color3.fromHSV(state.h, state.s, state.v)
+        local newFav = { isGradient = false, value = { r = currentColor.R, g = currentColor.G, b = currentColor.B } }
         table.insert(favs, newFav)
-        plugin:SetSetting("favorites", favs)
+        plugin:SetSetting("favorites", HttpService:JSONEncode(favs))
+        renderFavorites()
+    end)
+
+    saveGradientBtn.MouseButton1Click:Connect(function()
+        local favsJSON = plugin:GetSetting("favorites") or "[]"
+        local favs = HttpService:JSONDecode(favsJSON)
+        local serializableKeypoints = {}
+        for _, kp in ipairs(state.keypoints) do
+            table.insert(serializableKeypoints, { time = kp.Time, r = kp.Value.R, g = kp.Value.G, b = kp.Value.B })
+        end
+        local newFav = { isGradient = true, value = serializableKeypoints }
+        table.insert(favs, newFav)
+        plugin:SetSetting("favorites", HttpService:JSONEncode(favs))
         renderFavorites()
     end)
 
