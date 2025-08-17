@@ -192,8 +192,8 @@ function verifyAssets(assetIds) local missing = {}; local assetFolder = Replicat
 function performImport(data, statusLabel) statusLabel.Text = "Importing..."; local targetGui = StarterGui:FindFirstChild(Config.TARGET_SCREEN_GUI); if targetGui then targetGui:Destroy() end; targetGui = Instance.new("ScreenGui"); targetGui.Name = Config.TARGET_SCREEN_GUI; local importParent = targetGui; local nodes = data.nodes; local referenceSize = data.referenceSize; if Config.AUTO_CENTER_UI then local mainContainer = Instance.new("Frame"); mainContainer.Name = "ImportContainer"; mainContainer.BackgroundTransparency = 1; mainContainer.AnchorPoint = Vector2.new(0.5, 0.5); mainContainer.Position = UDim2.fromScale(0.5, 0.5); if Config.AUTO_SCALE then mainContainer.Size = UDim2.fromScale(0.8, 0.8) else local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge; for _, nodeData in ipairs(nodes) do local props = nodeData.properties; minX = math.min(minX, props.position.x); minY = math.min(minY, props.position.y); maxX = math.max(maxX, props.position.x + props.size.x); maxY = math.max(maxY, props.position.y + props.size.y) end; mainContainer.Size = UDim2.fromOffset(maxX - minX, maxY - minY); for _, nodeData in ipairs(nodes) do nodeData.properties.position.x = nodeData.properties.position.x - minX; nodeData.properties.position.y = nodeData.properties.position.y - minY end end; mainContainer.Parent = targetGui; importParent = mainContainer end; for _, nodeData in ipairs(nodes) do createFromData(nodeData, importParent, referenceSize) end; targetGui.Parent = StarterGui; Selection:Set({targetGui}); statusLabel.Text = "Import successful!" end
 
 local toolbar = plugin:CreateToolbar("Framify")
-local mainPluginButton = toolbar:CreateButton("Framify Importer", "Open Framify Importer", "rbxassetid://123456789")
-local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://3926307971")
+local mainPluginButton = toolbar:CreateButton("Framify Importer", "Open Framify Importer", "rbxassetid://127991582997910")
+local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://127991582997910")
 
 local mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, true, 360, 550, 360, 550))
 mainWidget.Title = "Framify Importer"
@@ -235,32 +235,49 @@ end)
 local function playLoadingAnimation()
     mainFrame.Visible = false
     loadingFrame.Visible = true
-    loadingProgress.Size = UDim2.fromScale(0,1)
-    loadingLogo.Position = UDim2.fromScale(0.5,0.5)
+    loadingFrame.BackgroundTransparency = 1
+    loadingLogo.Position = UDim2.fromScale(0.5, 0.5)
     loadingLogo.TextSize = 120
+    loadingProgress.Size = UDim2.fromScale(0, 1)
 
+    -- Fade in loading screen
+    TweenService:Create(loadingFrame, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
+    task.wait(0.3)
+
+    -- Animate loading bar
     local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    local progressTween = TweenService:Create(loadingProgress, tweenInfo, { Size = UDim2.fromScale(1,1) })
+    local progressTween = TweenService:Create(loadingProgress, tweenInfo, { Size = UDim2.fromScale(1, 1) })
     progressTween:Play()
-    task.wait(1.5)
 
-    local logoTweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-    local logoTween = TweenService:Create(loadingLogo, logoTweenInfo, { Position = mainLogo.AbsolutePosition, TextSize = 32 })
-    logoTween:Play()
+    -- Wait for loading bar to finish
+    progressTween.Completed:Wait()
+    task.wait(0.2)
 
-    logoTween.Completed:Wait()
+    -- Animate logo
+    local mainHeader = mainFrame:FindFirstChild("Header")
+    local finalLogoPosition = mainHeader.AbsolutePosition + Vector2.new(mainLogo.AbsoluteSize.X / 2, mainHeader.AbsoluteSize.Y / 2)
+
+    local logoMoveTween = TweenService:Create(loadingLogo, TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(finalLogoPosition.X, finalLogoPosition.Y) })
+    local logoResizeTween = TweenService:Create(loadingLogo, TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), { TextSize = 32 })
+
+    logoMoveTween:Play()
+    logoResizeTween:Play()
+
+    logoMoveTween.Completed:Wait()
+
+    -- Fade out loading screen
+    TweenService:Create(loadingFrame, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+    task.wait(0.3)
+
     loadingFrame.Visible = false
     mainFrame.Visible = true
-    mainLogo.Visible = true
-    mainLogo.Position = UDim2.fromScale(0,0)
-    mainLogo.AnchorPoint = Vector2.new(0,0)
-    mainLogo.Parent = mainFrame:FindFirstChild("Header")
+    mainLogo.Parent = mainHeader
 end
 
 mainPluginButton.Click:Connect(function()
     mainWidget.Enabled = not mainWidget.Enabled
     if mainWidget.Enabled then
-        playLoadingAnimation()
+        coroutine.wrap(playLoadingAnimation)()
     end
 end)
 settingsPluginButton.Click:Connect(function() settingsWidget.Enabled = not settingsWidget.Enabled end)
