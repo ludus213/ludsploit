@@ -26,17 +26,17 @@ figma.ui.onmessage = async (msg) => {
         referenceSize = { x: maxX - minX, y: maxY - minY };
     }
 
-    const mapping = [];
+    const nodes = [];
     for (const node of selection) {
-      mapping.push(await processNode(node, imageAssetMap));
+      nodes.push(await processNode(node, imageAssetMap));
     }
 
     const exportData = {
         referenceSize: referenceSize,
-        nodes: mapping
+        nodes: nodes
     };
 
-    const mappingString = JSON.stringify(exportData, null, 2);
+    const mappingString = JSON.stringify(exportData);
     const images = Array.from(imageAssetMap.entries()).map(([id, bytes]) => ({ id, bytes }));
     figma.ui.postMessage({ type: 'export-result', mappingString: mappingString, images: images });
   }
