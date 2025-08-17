@@ -16,7 +16,7 @@ local Config = {
     TARGET_SCREEN_GUI = "FramifyImport",
     ASSET_FOLDER_NAME = "FramifyAssets",
     CREATE_BEHAVIOR_SCRIPTS = true,
-    AUTO_CENTER_UI = true,
+    SHOW_ANCHOR_POPUP = true,
     AUTO_SCALE = true,
     THEME = "Dracula"
 }
@@ -178,37 +178,61 @@ function applyTheme(themeName)
 end
 
 function createLoadingUI(widget)
-    local f = Instance.new("Frame")
-    f.Name = "LoadingFrame"
-    f.Size = UDim2.fromScale(1, 1)
-    f.BackgroundColor3 = Themes[Config.THEME].BG
-    f.Parent = widget
-    UI.LoadingFrame = f
+    local container = Instance.new("Frame")
+    container.Name = "LoadingContainer"
+    container.Size = UDim2.fromScale(1, 1)
+    container.BackgroundTransparency = 1
+    container.Parent = widget
+    UI.LoadingContainer = container
 
-    local gradient = Instance.new("UIGradient", f)
-    gradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Themes[Config.THEME].BG),
-        ColorSequenceKeypoint.new(0.5, Color3.new(
-            math.min(1, Themes[Config.THEME].BG.R * 1.1),
-            math.min(1, Themes[Config.THEME].BG.G * 1.1),
-            math.min(1, Themes[Config.THEME].BG.B * 1.1)
-        )),
-        ColorSequenceKeypoint.new(1, Themes[Config.THEME].BG)
-    }
-    gradient.Rotation = 45
+    local topHalf = Instance.new("Frame")
+    topHalf.Name = "TopHalf"
+    topHalf.Size = UDim2.new(1, 0, 0.5, 0)
+    topHalf.Position = UDim2.new(0, 0, 0, 0)
+    topHalf.BackgroundColor3 = Themes[Config.THEME].BG
+    topHalf.BorderSizePixel = 0
+    topHalf.ClipsDescendants = true
+    topHalf.Parent = container
+    UI.LoadingTopHalf = topHalf
 
-    local logo = Instance.new("ImageLabel", f)
+    local bottomHalf = Instance.new("Frame")
+    bottomHalf.Name = "BottomHalf"
+    bottomHalf.Size = UDim2.new(1, 0, 0.5, 0)
+    bottomHalf.Position = UDim2.new(0, 0, 0.5, 0)
+    bottomHalf.BackgroundColor3 = Themes[Config.THEME].BG
+    bottomHalf.BorderSizePixel = 0
+    bottomHalf.ClipsDescendants = true
+    bottomHalf.Parent = container
+    UI.LoadingBottomHalf = bottomHalf
+    
+    local function addGradient(parent)
+        local gradient = Instance.new("UIGradient", parent)
+        gradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Themes[Config.THEME].BG),
+            ColorSequenceKeypoint.new(0.5, Color3.new(
+                math.min(1, Themes[Config.THEME].BG.R * 1.1),
+                math.min(1, Themes[Config.THEME].BG.G * 1.1),
+                math.min(1, Themes[Config.THEME].BG.B * 1.1)
+            )),
+            ColorSequenceKeypoint.new(1, Themes[Config.THEME].BG)
+        }
+        gradient.Rotation = 45
+    end
+    addGradient(topHalf)
+    addGradient(bottomHalf)
+
+    local logo = Instance.new("ImageLabel", topHalf)
     logo.Name = "Logo"
     logo.Image = "rbxassetid://127991582997910"
     logo.BackgroundTransparency = 1
     logo.Size = UDim2.new(0, 40, 0, 52)
-    logo.AnchorPoint = Vector2.new(0.5, 0.5)
-    logo.Position = UDim2.new(0.5, 0, 0.35, 0)
+    logo.AnchorPoint = Vector2.new(0.5, 1)
+    logo.Position = UDim2.new(0.5, 0, 0.85, 0)
     logo.ImageTransparency = 1
     logo.ScaleType = Enum.ScaleType.Fit
     UI.LoadingLogo = logo
 
-    local titleLabel = Instance.new("TextLabel", f)
+    local titleLabel = Instance.new("TextLabel", topHalf)
     titleLabel.Name = "LoadingTitle"
     titleLabel.Text = "Framify"
     titleLabel.Font = Enum.Font.GothamBold
@@ -217,17 +241,18 @@ function createLoadingUI(widget)
     titleLabel.TextColor3 = Themes[Config.THEME].Text
     titleLabel.BackgroundTransparency = 1
     titleLabel.Size = UDim2.new(1, 0, 0, 28)
-    titleLabel.Position = UDim2.new(0, 0, 0.48, 0)
+    titleLabel.AnchorPoint = Vector2.new(0.5, 1)
+    titleLabel.Position = UDim2.new(0.5, 0, 0.98, 0)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Center
     titleLabel.TextTransparency = 1
     UI.LoadingTitle = titleLabel
-
-    local barContainer = Instance.new("Frame", f)
+    
+    local barContainer = Instance.new("Frame", bottomHalf)
     barContainer.Name = "BarContainer"
     barContainer.BackgroundTransparency = 1
     barContainer.Size = UDim2.new(0.6, 0, 0, 6)
-    barContainer.Position = UDim2.new(0.5, 0, 0.58, 0)
-    barContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    barContainer.AnchorPoint = Vector2.new(0.5, 0)
+    barContainer.Position = UDim2.new(0.5, 0, 0.1, 0)
     UI.LoadingBarContainer = barContainer
 
     local barBG = Instance.new("Frame", barContainer)
@@ -249,7 +274,7 @@ function createLoadingUI(widget)
     local barCorner = Instance.new("UICorner", bar)
     barCorner.CornerRadius = UDim.new(0.5, 0)
 
-    local subtitleLabel = Instance.new("TextLabel", f)
+    local subtitleLabel = Instance.new("TextLabel", bottomHalf)
     subtitleLabel.Name = "LoadingSubtitle"
     subtitleLabel.Text = "Loading..."
     subtitleLabel.Font = Enum.Font.Gotham
@@ -258,34 +283,38 @@ function createLoadingUI(widget)
     subtitleLabel.TextColor3 = Themes[Config.THEME].TextSecondary
     subtitleLabel.BackgroundTransparency = 1
     subtitleLabel.Size = UDim2.new(1, 0, 0, 18)
-    subtitleLabel.Position = UDim2.new(0, 0, 0.65, 0)
+    subtitleLabel.AnchorPoint = Vector2.new(0.5, 0)
+    subtitleLabel.Position = UDim2.new(0.5, 0, 0.2, 0)
     subtitleLabel.TextXAlignment = Enum.TextXAlignment.Center
     subtitleLabel.TextTransparency = 1
     UI.LoadingSubtitle = subtitleLabel
 
-    return f, logo, bar
+    return container, logo, bar
 end
 
 function createMainUI(widget)
-    local f = Instance.new("Frame")
-    f.Name = "MainFrame"
-    f.Size = UDim2.fromScale(1, 1)
-    f.Visible = false
-    f.Parent = widget
-    UI.MainFrame = f
+    local cg = Instance.new("CanvasGroup")
+    cg.Name = "MainFrame"
+    cg.Size = UDim2.fromScale(1, 1)
+    cg.Visible = false
+    cg.GroupTransparency = 1
+    cg.AnchorPoint = Vector2.new(0.5, 0.5)
+    cg.Position = UDim2.new(0.5, 0, 0.52, 0)
+    cg.Parent = widget
+    UI.MainFrame = cg
 
-    local p = Instance.new("UIPadding", f)
-    p.PaddingLeft = UDim.new(0, 20)
-    p.PaddingRight = UDim.new(0, 20)
-    p.PaddingTop = UDim.new(0, 16)
-    p.PaddingBottom = UDim.new(0, 16)
+    local p = Instance.new("UIPadding", cg)
+    p.PaddingLeft = UDim.new(0, 24)
+    p.PaddingRight = UDim.new(0, 24)
+    p.PaddingTop = UDim.new(0, 20)
+    p.PaddingBottom = UDim.new(0, 20)
 
-    local l = Instance.new("UIListLayout", f)
-    l.Padding = UDim.new(0, 12)
+    local l = Instance.new("UIListLayout", cg)
+    l.Padding = UDim.new(0, 16)
     l.SortOrder = Enum.SortOrder.LayoutOrder
     l.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-    local header = Instance.new("Frame", f)
+    local header = Instance.new("Frame", cg)
     header.Name = "Header"
     header.BackgroundTransparency = 1
     header.LayoutOrder = 1
@@ -317,7 +346,7 @@ function createMainUI(widget)
     t.Size = UDim2.new(1, -38, 1, 0)
     UI.MainTitle = t
 
-    local i = Instance.new("TextLabel", f)
+    local i = Instance.new("TextLabel", cg)
     i.Name = "Instructions"
     i.LayoutOrder = 2
     i.Text = "Paste your mapping string below to begin."
@@ -330,10 +359,10 @@ function createMainUI(widget)
     i.TextXAlignment = Enum.TextXAlignment.Center
     UI.MainInstructions = i
 
-    local s = Instance.new("ScrollingFrame", f)
+    local s = Instance.new("ScrollingFrame", cg)
     s.Name = "TextScrollFrame"
     s.LayoutOrder = 3
-    s.Size = UDim2.new(1, 0, 0, 160)
+    s.Size = UDim2.new(1, 0, 0, 200)
     s.BorderSizePixel = 0
     s.BackgroundTransparency = 0
     s.ScrollBarThickness = 6
@@ -366,7 +395,7 @@ function createMainUI(widget)
         s.CanvasSize = UDim2.new(0, 0, 0, math.max(tb.AbsoluteSize.Y + 16, s.AbsoluteSize.Y))
     end)
 
-    local btn = Instance.new("TextButton", f)
+    local btn = Instance.new("TextButton", cg)
     btn:SetAttribute("StyleType", "Primary")
     btn.LayoutOrder = 4
     btn.Text = "Import"
@@ -382,7 +411,7 @@ function createMainUI(widget)
     local btnCorner = Instance.new("UICorner", btn)
     btnCorner.CornerRadius = UDim.new(0, 6)
 
-    local st = Instance.new("TextLabel", f)
+    local st = Instance.new("TextLabel", cg)
     st.Name = "Label"
     st.LayoutOrder = 5
     st.Text = ""
@@ -394,7 +423,7 @@ function createMainUI(widget)
     st.Size = UDim2.new(1, 0, 0, 14)
     UI.MainStatusLabel = st
 
-    local v = Instance.new("TextLabel", f)
+    local v = Instance.new("TextLabel", cg)
     v.Name = "Version"
     v.LayoutOrder = 6
     v.Text = "V" .. VERSION
@@ -406,7 +435,7 @@ function createMainUI(widget)
     v.TextXAlignment = Enum.TextXAlignment.Center
     UI.MainVersionLabel = v
 
-    local sup = Instance.new("TextLabel", f)
+    local sup = Instance.new("TextLabel", cg)
     sup.Name = "Support"
     sup.LayoutOrder = 7
     sup.Text = "Contact .ludio. on Discord for support/errors"
@@ -418,7 +447,7 @@ function createMainUI(widget)
     sup.TextXAlignment = Enum.TextXAlignment.Center
     UI.MainSupportLabel = sup
 
-    return btn, tb, st, f, logo
+    return btn, tb, st, cg, logo
 end
 
 function createSettingsUI(widget)
@@ -524,7 +553,7 @@ function createSettingsUI(widget)
         }):Play()
     end)
 
-    UI.SettingsCenterCheck = createToggle(4, "Auto Center UI", "AUTO_CENTER_UI")
+    UI.SettingsAnchorPopupCheck = createToggle(4, "Show Anchoring Popup", "SHOW_ANCHOR_POPUP")
     UI.SettingsScaleCheck = createToggle(5, "Auto Scale UI", "AUTO_SCALE")
 
     local tl = Instance.new("TextLabel", f)
@@ -851,86 +880,74 @@ function applyConstraints(element, constraints)
 end
 
 local propertyAppliers = {}
-propertyAppliers.Default = function(element, data, parentSize, rootReferenceSize)
+propertyAppliers.Default = function(element, data, parentSize)
     local props = data.properties
     element.Name = data.name
     element.Visible = props.visible ~= false
-    
-    -- Ensure we have valid sizes and positions
+    element.Rotation = props.rotation or 0
+    element.ClipsDescendants = data.type == 'FRAME'
+    applyFills(element, props.fills)
+
     if not props.size or not props.position then
         return
     end
-    
-    if Config.AUTO_SCALE and rootReferenceSize then
-        -- Use the root reference size for all scaling calculations
-        local refW, refH = rootReferenceSize.X, rootReferenceSize.Y
-        
-        -- Ensure reference size is valid
-        if refW <= 0 or refH <= 0 then
-            refW, refH = 1920, 1080
+
+    local anchorPoint = Vector2.new(0, 0)
+    if props.constraints then
+        if props.constraints.horizontal == "CENTER" then
+            anchorPoint = Vector2.new(0.5, anchorPoint.Y)
+        elseif props.constraints.horizontal == "RIGHT" then
+            anchorPoint = Vector2.new(1, anchorPoint.Y)
         end
-        
-        -- Calculate exact proportional scaling from Figma coordinates
-        local scaleX = props.size.x / refW
-        local scaleY = props.size.y / refH
-        local posX = props.position.x / refW  
-        local posY = props.position.y / refH
-        
-        -- Use scale-based sizing to maintain exact proportions
-        element.Size = UDim2.fromScale(scaleX, scaleY)
-        element.Position = UDim2.fromScale(posX, posY)
-        
-        -- Always use top-left anchor for consistent positioning
-        element.AnchorPoint = Vector2.new(0, 0)
-        
-        if props.cornerRadius and props.cornerRadius > 0 then
-            local c = Instance.new("UICorner")
-            -- Scale corner radius proportionally to maintain visual consistency
-            local scaleFactor = math.min(scaleX, scaleY)
-            c.CornerRadius = UDim.new(0, math.max(props.cornerRadius * scaleFactor * refW / 1920, 1))
-            c.Parent = element
+        if props.constraints.vertical == "CENTER" then
+            anchorPoint = Vector2.new(anchorPoint.X, 0.5)
+        elseif props.constraints.vertical == "BOTTOM" then
+            anchorPoint = Vector2.new(anchorPoint.X, 1)
         end
-        
-        -- Apply strokes with scaled weight for consistency
-        local strokeScale = math.min(scaleX, scaleY) * refW / 1920
-        applyStrokes(element, props.strokes, props.strokeWeight, strokeScale)
-    else
-        -- Use exact pixel positioning and sizing from Figma
-        element.Position = UDim2.fromOffset(props.position.x, props.position.y)
-        element.Size = UDim2.fromOffset(props.size.x, props.size.y)
-        element.AnchorPoint = Vector2.new(0, 0)
+    end
+    element.AnchorPoint = anchorPoint
+
+    if Config.AUTO_SCALE then
+        local parentW = parentSize.X
+        local parentH = parentSize.Y
+        if parentW <= 0 or parentH <= 0 then parentW, parentH = 1920, 1080 end
+
+        local sizeXScale = props.size.x / parentW
+        local sizeYScale = props.size.y / parentH
+        element.Size = UDim2.fromScale(sizeXScale, sizeYScale)
+
+        local posXScale = (props.position.x + (props.size.x * anchorPoint.X)) / parentW
+        local posYScale = (props.position.y + (props.size.y * anchorPoint.Y)) / parentH
+        element.Position = UDim2.fromScale(posXScale, posYScale)
         
         if props.cornerRadius and props.cornerRadius > 0 then
             local c = Instance.new("UICorner")
             c.CornerRadius = UDim.new(0, props.cornerRadius)
             c.Parent = element
         end
+        applyStrokes(element, props.strokes, props.strokeWeight)
+    else
+        element.Position = UDim2.fromOffset(props.position.x, props.position.y)
+        element.Size = UDim2.fromOffset(props.size.x, props.size.y)
         
-        applyStrokes(element, props.strokes, props.strokeWeight, 1)
+        if props.cornerRadius and props.cornerRadius > 0 then
+            local c = Instance.new("UICorner")
+            c.CornerRadius = UDim.new(0, props.cornerRadius)
+            c.Parent = element
+        end
+        applyStrokes(element, props.strokes, props.strokeWeight)
     end
-    
-    element.Rotation = props.rotation or 0
-    element.ClipsDescendants = data.type == 'FRAME'
-    applyFills(element, props.fills)
 end
 
-propertyAppliers.TEXT = function(element, data, parentSize, rootReferenceSize)
-    propertyAppliers.Default(element, data, parentSize, rootReferenceSize)
+propertyAppliers.TEXT = function(element, data, parentSize)
+    propertyAppliers.Default(element, data, parentSize)
     local props = data.properties
     element.Text = props.characters or ""
     element.Font = (props.fontName and fontMap[props.fontName.family]) or Enum.Font.SourceSans
     
-    -- Always use TextScaled for responsive text sizing
     element.TextScaled = true
     element.TextWrapped = true
-    
-    -- Set text size based on scaling mode
-    if Config.AUTO_SCALE and rootReferenceSize and rootReferenceSize.Y > 0 then
-        -- Use the original font size - TextScaled will handle the scaling
-        element.TextSize = props.fontSize or 14
-    else
-        element.TextSize = props.fontSize or 14
-    end
+    element.TextSize = props.fontSize or 14
     
     if props.fills and #props.fills > 0 then
         local fill = props.fills[1]
@@ -938,7 +955,6 @@ propertyAppliers.TEXT = function(element, data, parentSize, rootReferenceSize)
         element.TextTransparency = 1 - (fill.opacity or 1)
     end
     
-    -- Convert Figma text alignment to Roblox enums
     local textAlignH = props.textAlignHorizontal
     if textAlignH == "LEFT" then
         element.TextXAlignment = Enum.TextXAlignment.Left
@@ -1002,7 +1018,9 @@ elementCreators.Default = function(data)
         element = Instance.new("ScrollingFrame")
         element.ScrollingDirection = table.find(tags, "scrollx") and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y
         element.ScrollBarThickness = 8
-        element.CanvasSize = UDim2.fromScale(1, 1)
+        element.CanvasSize = UDim2.fromScale(0, 0)
+        local layout = Instance.new("UIListLayout")
+        layout.Parent = element
     else
         element = Instance.new("Frame")
     end
@@ -1019,9 +1037,9 @@ elementCreators.TEXT = function(data)
     return label
 end
 
-function createFromData(data, parent, parentSize, rootReferenceSize)
+function createFromData(data, parent, parentSize)
     local element = (elementCreators[data.type] or elementCreators.Default)(data)
-    ;(propertyAppliers[data.type] or propertyAppliers.Default)(element, data, parentSize, rootReferenceSize)
+    ;(propertyAppliers[data.type] or propertyAppliers.Default)(element, data, parentSize)
     if element:IsA("ImageLabel") or element:IsA("ImageButton") then
         propertyAppliers.Image(element, data)
     end
@@ -1029,13 +1047,11 @@ function createFromData(data, parent, parentSize, rootReferenceSize)
         createBehaviorScript(element, data.tags)
     end
     element.Parent = parent
-    if data.children then
+    if data.children and #data.children > 0 then
+        local childParentSize = Vector2.new(data.properties.size.x, data.properties.size.y)
         for _, childData in ipairs(data.children) do
-            createFromData(childData, element, parentSize, rootReferenceSize)
+            createFromData(childData, element, childParentSize)
         end
-    end
-    if element:IsA("ScrollingFrame") then
-        element.CanvasSize = UDim2.fromScale(1, 1)
     end
     return element
 end
@@ -1086,195 +1102,381 @@ function performImport(data, statusLabel)
     end
     targetGui = Instance.new("ScreenGui")
     targetGui.Name = Config.TARGET_SCREEN_GUI
-    local importParent = targetGui
+    
     local nodes = data.nodes or {}
     
-    -- Ensure referenceSize is properly set with fallback values
     local referenceSize = data.referenceSize
     if not referenceSize or not referenceSize.x or not referenceSize.y or referenceSize.x <= 0 or referenceSize.y <= 0 then
         referenceSize = { x = 1920, y = 1080 }
     end
     
-    -- Convert to Vector2 format for consistency and pass to all children
     local rootRefSize = Vector2.new(referenceSize.x, referenceSize.y)
+
+    local mainContainer = Instance.new("Frame")
+    mainContainer.Name = "ImportContainer"
+    mainContainer.BackgroundTransparency = 1
     
-    if Config.AUTO_CENTER_UI then
-        local mainContainer = Instance.new("Frame")
-        mainContainer.Name = "ImportContainer"
-        mainContainer.BackgroundTransparency = 1
-        mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-        mainContainer.Position = UDim2.fromScale(0.5, 0.5)
-        
-        if Config.AUTO_SCALE then
-            -- Set container to exact reference size in scale mode
-            -- The children will scale relative to this container
-            mainContainer.Size = UDim2.fromScale(1, 1)
-        else
-            -- Use exact reference sizes in pixel mode
-            mainContainer.Size = UDim2.fromOffset(rootRefSize.X, rootRefSize.Y)
-        end
-        
-        mainContainer.Parent = targetGui
-        importParent = mainContainer
-    end
+    -- Size the container to fill the screen, but maintain aspect ratio
+    mainContainer.Size = UDim2.fromScale(1, 1)
     
-    -- Create elements using the root reference size for all scaling calculations
+    local importParent = mainContainer
+    
+    mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainContainer.Position = UDim2.fromScale(0.5, 0.5)
+
+    mainContainer.Parent = targetGui
+    
+    local aspectRatio = rootRefSize.X / rootRefSize.Y
+    local constraint = Instance.new("UIAspectRatioConstraint")
+    constraint.AspectRatio = aspectRatio
+    constraint.DominantAxis = Enum.DominantAxis.Height
+    constraint.Parent = mainContainer
+
     for _, nodeData in ipairs(nodes) do
-        createFromData(nodeData, importParent, rootRefSize, rootRefSize)
+        createFromData(nodeData, importParent, rootRefSize)
     end
+    
     targetGui.Parent = StarterGui
     Selection:Set({ targetGui })
     statusLabel.Text = "Import successful!"
+
+    if Config.SHOW_ANCHOR_POPUP then
+        if not finalizationWidget then
+            local finalizationWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 220, 280, 220, 280)
+            finalizationWidget = plugin:CreateDockWidgetPluginGui("FramifyFinalization", finalizationWidgetInfo)
+            finalizationWidget.Title = "Import Finalization"
+        end
+        populateFinalizationUI(finalizationWidget, mainContainer)
+        finalizationWidget.Enabled = true
+    end
+end
+
+function createSlider(parent, theme, options)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 50)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+
+    local listLayout = Instance.new("UIListLayout", container)
+    listLayout.Padding = UDim.new(0, 4)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local topRow = Instance.new("Frame")
+    topRow.Size = UDim2.new(1, 0, 0, 16)
+    topRow.BackgroundTransparency = 1
+    topRow.Parent = container
+    topRow.LayoutOrder = 1
+    
+    local topRowLayout = Instance.new("UIListLayout", topRow)
+    topRowLayout.FillDirection = Enum.FillDirection.Horizontal
+    topRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local label = Instance.new("TextLabel", topRow)
+    label.Name = "Label"
+    label.Text = options.text
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.TextColor3 = theme.Text
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Size = UDim2.new(0.7, -4, 1, 0)
+    
+    local valueLabel = Instance.new("TextLabel", topRow)
+    valueLabel.Name = "ValueLabel"
+    valueLabel.Text = string.format("%.2f", options.default)
+    valueLabel.Font = Enum.Font.Code
+    valueLabel.TextSize = 12
+    valueLabel.TextColor3 = theme.Primary
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valueLabel.Size = UDim2.new(0.3, 0, 1, 0)
+
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, 0, 0, 20)
+    sliderFrame.BackgroundColor3 = theme.Surface
+    sliderFrame.Parent = container
+    sliderFrame.LayoutOrder = 2
+    
+    local corner = Instance.new("UICorner", sliderFrame)
+    corner.CornerRadius = UDim.new(0, 4)
+    
+    local bar = Instance.new("Frame", sliderFrame)
+    bar.BackgroundColor3 = theme.Primary
+    bar.BorderSizePixel = 0
+    bar.Size = UDim2.new((options.default - options.min) / (options.max - options.min), 0, 1, 0)
+    
+    local barCorner = Instance.new("UICorner", bar)
+    barCorner.CornerRadius = UDim.new(0, 4)
+
+    local thumb = Instance.new("Frame", sliderFrame)
+    thumb.Size = UDim2.new(0, 12, 0, 12)
+    thumb.AnchorPoint = Vector2.new(0.5, 0.5)
+    thumb.Position = UDim2.new(bar.Size.X.Scale, 0, 0.5, 0)
+    thumb.BackgroundColor3 = theme.Text
+    thumb.BorderSizePixel = 2
+    thumb.BorderColor3 = theme.Primary
+    
+    local thumbCorner = Instance.new("UICorner", thumb)
+    thumbCorner.CornerRadius = UDim.new(1, 0)
+    
+    local dragging = false
+    
+    local function updateSlider(inputPos)
+        if not dragging then return end
+        local scale = math.clamp((inputPos.X - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
+        local value = options.min + scale * (options.max - options.min)
+        
+        bar.Size = UDim2.new(scale, 0, 1, 0)
+        thumb.Position = UDim2.new(scale, 0, 0.5, 0)
+        valueLabel.Text = string.format("%.2f", value)
+        
+        if options.onChanged then
+            options.onChanged(value)
+        end
+    end
+    
+    sliderFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            updateSlider(input.Position)
+        end
+    end)
+    
+    sliderFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    sliderFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            updateSlider(input.Position)
+        end
+    end)
+    
+    return container
+end
+
+function populateFinalizationUI(widget, targetElement)
+    for _, child in ipairs(widget:GetChildren()) do
+        child:Destroy()
+    end
+
+    widget.Title = "Import Finalization"
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.fromScale(1, 1)
+    mainFrame.BackgroundColor3 = Themes[Config.THEME].BG
+    mainFrame.Parent = widget
+
+    local padding = Instance.new("UIPadding", mainFrame)
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.PaddingRight = UDim.new(0, 12)
+    padding.PaddingTop = UDim.new(0, 12)
+    padding.PaddingBottom = UDim.new(0, 12)
+
+    local listLayout = Instance.new("UIListLayout", mainFrame)
+    listLayout.Padding = UDim.new(0, 10)
+    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local anchorTitle = Instance.new("TextLabel", mainFrame)
+    anchorTitle.Name = "Title"
+    anchorTitle.Text = "Anchor Point"
+    anchorTitle.Font = Enum.Font.GothamBold
+    anchorTitle.TextSize = 14
+    anchorTitle.Size = UDim2.new(1, 0, 0, 20)
+    anchorTitle.TextColor3 = Themes[Config.THEME].Text
+    anchorTitle.BackgroundTransparency = 1
+    anchorTitle.LayoutOrder = 1
+
+    local gridFrame = Instance.new("Frame", mainFrame)
+    gridFrame.Size = UDim2.new(1, 0, 0, 120)
+    gridFrame.BackgroundTransparency = 1
+    gridFrame.LayoutOrder = 2
+    
+    local gridLayout = Instance.new("UIGridLayout", gridFrame)
+    gridLayout.CellSize = UDim2.fromScale(0.3, 0.3)
+    gridLayout.CellPadding = UDim2.fromScale(0.05, 0.05)
+    gridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    gridLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local anchors = {
+        { name = "┌", value = Vector2.new(0, 0) }, { name = "┬", value = Vector2.new(0.5, 0) }, { name = "┐", value = Vector2.new(1, 0) },
+        { name = "├", value = Vector2.new(0, 0.5) }, { name = "+", value = Vector2.new(0.5, 0.5) }, { name = "┤", value = Vector2.new(1, 0.5) },
+        { name = "└", value = Vector2.new(0, 1) }, { name = "┴", value = Vector2.new(0.5, 1) }, { name = "┘", value = Vector2.new(1, 1) }
+    }
+
+    for _, anchorInfo in ipairs(anchors) do
+        local btn = Instance.new("TextButton")
+        btn.Name = anchorInfo.name
+        btn.Text = anchorInfo.name
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 24
+        btn.Parent = gridFrame
+        
+        styleButton(btn, "Secondary", Themes[Config.THEME])
+
+        btn.MouseButton1Click:Connect(function()
+            targetElement.AnchorPoint = anchorInfo.value
+        end)
+    end
+
+    local scaleSlider = createSlider(mainFrame, Themes[Config.THEME], {
+        text = "Scale",
+        min = 0.1,
+        max = 10,
+        default = 1,
+        onChanged = function(value)
+            targetElement.Size = UDim2.fromScale(value, value)
+        end
+    })
+    scaleSlider.LayoutOrder = 3
+
+    local doneBtn = Instance.new("TextButton", mainFrame)
+    doneBtn.Name = "DoneButton"
+    doneBtn.Text = "Done"
+    doneBtn.Size = UDim2.new(1, 0, 0, 36)
+    styleButton(doneBtn, "Primary", Themes[Config.THEME])
+    doneBtn.LayoutOrder = 4
+    
+    doneBtn.MouseButton1Click:Connect(function()
+        widget.Enabled = false
+    end)
 end
 
 local function playLoadingAnimation()
+    -- Initial State
     UI.MainFrame.Visible = false
-    UI.LoadingFrame.Visible = true
-
-    UI.LoadingFrame.BackgroundTransparency = 1
+    UI.LoadingContainer.Visible = true
+    UI.LoadingTopHalf.Visible = true
+    UI.LoadingBottomHalf.Visible = true
+    UI.LoadingTopHalf.Position = UDim2.fromScale(0, 0)
+    UI.LoadingBottomHalf.Position = UDim2.fromScale(0, 0.5)
     UI.LoadingLogo.ImageTransparency = 1
     UI.LoadingTitle.TextTransparency = 1
     UI.LoadingSubtitle.TextTransparency = 1
     UI.LoadingBar.Size = UDim2.fromScale(0, 1)
 
-    TweenService:Create(UI.LoadingFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 0
-    }):Play()
-
+    -- Fade In Animation
     task.wait(0.15)
-
     local logoFadeIn = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         ImageTransparency = 0
     })
     logoFadeIn:Play()
-
     task.wait(0.2)
-
     TweenService:Create(UI.LoadingTitle, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
         TextTransparency = 0
     }):Play()
-
     task.wait(0.15)
-
     TweenService:Create(UI.LoadingSubtitle, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
         TextTransparency = 0
     }):Play()
 
+    -- Progress Bar Animation
     task.wait(0.2)
-
-    local progressTween = TweenService:Create(UI.LoadingBar, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    local progressTween = TweenService:Create(UI.LoadingBar, TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
         Size = UDim2.fromScale(1, 1)
     })
     progressTween:Play()
-
     progressTween.Completed:Wait()
-    task.wait(0.15)
+    task.wait(0.2)
 
-    local fadeOutTween = TweenService:Create(UI.LoadingFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 1
-    })
-    fadeOutTween:Play()
+    -- Split and Slide Out Animation
+    local slideOutInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
+    local slideTop = TweenService:Create(UI.LoadingTopHalf, slideOutInfo, { Position = UDim2.new(0, 0, -0.5, 0) })
+    local slideBottom = TweenService:Create(UI.LoadingBottomHalf, slideOutInfo, { Position = UDim2.new(0, 0, 1, 0) })
+    
+    slideTop:Play()
+    slideBottom:Play()
 
+    -- Main UI Entrance Animation
     UI.MainFrame.Visible = true
-    UI.MainFrame.BackgroundTransparency = 1
+    local slideInInfo = TweenInfo.new(0.7, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local slideUp = TweenService:Create(UI.MainFrame, slideInInfo, { Position = UDim2.fromScale(0.5, 0.5) })
+    local fadeIn = TweenService:Create(UI.MainFrame, slideInInfo, { GroupTransparency = 0 })
 
-    TweenService:Create(UI.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 0
-    }):Play()
+    task.wait(0.15) -- Wait a bit for the split to start before sliding in
+    slideUp:Play()
+    fadeIn:Play()
 
-    UI.MainLogo.Parent = UI.MainHeader
-
-    task.wait(0.1)
-
-    local elementsToShow = {
-        UI.MainTitle,
-        UI.MainInstructions,
-        UI.MainTextScrollFrame,
-        UI.MainImportButton,
-        UI.MainStatusLabel,
-        UI.MainVersionLabel,
-        UI.MainSupportLabel
-    }
-
-    for _, element in ipairs(elementsToShow) do
-        if element then
-            if element:IsA("TextLabel") or element:IsA("TextButton") then
-                element.TextTransparency = 1
-                TweenService:Create(element, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    TextTransparency = 0
-                }):Play()
-            end
-            if element == UI.MainTextScrollFrame then
-                element.BackgroundTransparency = 1
-                TweenService:Create(element, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    BackgroundTransparency = 0
-                }):Play()
-            end
-            task.wait(0.04)
-        end
-    end
-
-    fadeOutTween.Completed:Wait()
-    UI.LoadingFrame.Visible = false
+    -- Cleanup
+    slideBottom.Completed:Wait()
+    fadeIn.Completed:Wait()
+    UI.LoadingContainer.Visible = false
 end
 
 local toolbar = plugin:CreateToolbar("Framify")
 local mainPluginButton = toolbar:CreateButton("Framify Importer", "Open Framify Importer", "rbxassetid://127991582997910")
 local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://93472476640298")
 
-local mainWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 380, 520, 380, 520)
-local mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", mainWidgetInfo)
-mainWidget.Title = "Framify Importer"
+local mainWidget, settingsWidget, promptWidget, finalizationWidget
+local isInitialized = false
 
-local loadingFrame, loadingLogo, loadingProgress = createLoadingUI(mainWidget)
-local importBtn, mappingTextBox, statusLabel, mainFrame, mainLogo = createMainUI(mainWidget)
+local function initializeUI()
+    if isInitialized then return end
 
-local settingsWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 320, 420, 320, 420)
-local settingsWidget = plugin:CreateDockWidgetPluginGui("FramifySettings", settingsWidgetInfo)
-settingsWidget.Title = "Framify Settings"
-createSettingsUI(settingsWidget)
+    local mainWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 380, 520, 380, 520)
+    mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", mainWidgetInfo)
+    mainWidget.Title = "Framify Importer"
 
-local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 340, 180, 340, 180)
-local promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
-promptWidget.Title = "Framify Prompt"
+    createLoadingUI(mainWidget)
+    local importBtn, mappingTextBox, statusLabel, _, _ = createMainUI(mainWidget)
 
-applyTheme(Config.THEME)
+    local settingsWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 320, 420, 320, 420)
+    settingsWidget = plugin:CreateDockWidgetPluginGui("FramifySettings", settingsWidgetInfo)
+    settingsWidget.Title = "Framify Settings"
+    createSettingsUI(settingsWidget)
 
-importBtn.MouseButton1Click:Connect(function()
-    statusLabel.Text = ""
-    local mappingString = mappingTextBox.Text
-    if mappingString == "" then
-        statusLabel.Text = "Error: Mapping string cannot be empty."
-        return
-    end
-    local success, data = pcall(function()
-        return HttpService:JSONDecode(mappingString)
-    end)
-    if not success or not data.nodes or not data.referenceSize then
-        statusLabel.Text = "Error: Invalid mapping string."
-        return
-    end
-    local requiredAssets = collectAssetIds(data.nodes)
-    if #requiredAssets > 0 then
-        local missingAssets, err = verifyAssets(requiredAssets)
-        if #missingAssets > 0 then
-            statusLabel.Text = "Error: " .. err
+    local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 340, 180, 340, 180)
+    promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
+    promptWidget.Title = "Framify Prompt"
+
+    applyTheme(Config.THEME)
+
+    importBtn.MouseButton1Click:Connect(function()
+        statusLabel.Text = ""
+        local mappingString = mappingTextBox.Text
+        if mappingString == "" then
+            statusLabel.Text = "Error: Mapping string cannot be empty."
             return
         end
-        populatePromptUI(promptWidget, "Image Assets Found", "This UI requires images that appear to be uploaded. Proceed with import?",
-            function()
-                performImport(data, statusLabel)
-            end,
-            function()
-                statusLabel.Text = "Import cancelled."
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(mappingString)
+        end)
+        if not success or not data.nodes or not data.referenceSize then
+            statusLabel.Text = "Error: Invalid mapping string."
+            return
+        end
+        local requiredAssets = collectAssetIds(data.nodes)
+        if #requiredAssets > 0 then
+            local missingAssets, err = verifyAssets(requiredAssets)
+            if #missingAssets > 0 then
+                statusLabel.Text = "Error: " .. err
+                return
             end
-        )
-    else
-        performImport(data, statusLabel)
-    end
-end)
+            populatePromptUI(promptWidget, "Image Assets Found", "This UI requires images that appear to be uploaded. Proceed with import?",
+                function()
+                    performImport(data, statusLabel)
+                end,
+                function()
+                    statusLabel.Text = "Import cancelled."
+                end
+            )
+        else
+            performImport(data, statusLabel)
+        end
+    end)
+    
+    mainWidget.Enabled = false
+    settingsWidget.Enabled = false
+    promptWidget.Enabled = false
+
+    isInitialized = true
+end
 
 mainPluginButton.Click:Connect(function()
+    initializeUI()
     mainWidget.Enabled = not mainWidget.Enabled
     if mainWidget.Enabled then
         coroutine.wrap(playLoadingAnimation)()
@@ -1282,9 +1484,6 @@ mainPluginButton.Click:Connect(function()
 end)
 
 settingsPluginButton.Click:Connect(function()
+    initializeUI()
     settingsWidget.Enabled = not settingsWidget.Enabled
 end)
-
-mainWidget.Enabled = false
-settingsWidget.Enabled = false
-promptWidget.Enabled = false
