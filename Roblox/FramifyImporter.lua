@@ -1118,7 +1118,7 @@ function performImport(data, statusLabel)
 
     -- Size the container to fill the screen, but maintain aspect ratio
     mainContainer.Size = UDim2.fromScale(1, 1)
-    
+
     local importParent = mainContainer
 
     mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1181,15 +1181,18 @@ function createSlider(parent, theme, options)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Size = UDim2.new(0.7, -4, 1, 0)
 
-    local valueLabel = Instance.new("TextLabel", topRow)
-    valueLabel.Name = "ValueLabel"
-    valueLabel.Text = string.format("%.2f", options.default)
-    valueLabel.Font = Enum.Font.Code
-    valueLabel.TextSize = 12
-    valueLabel.TextColor3 = theme.Primary
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valueLabel.Size = UDim2.new(0.3, 0, 1, 0)
+    local valueBox = Instance.new("TextBox", topRow)
+    valueBox.Name = "ValueBox"
+    valueBox.Text = string.format("%.2f", options.default)
+    valueBox.Font = Enum.Font.Code
+    valueBox.TextSize = 11
+    valueBox.TextColor3 = theme.Primary
+    valueBox.BackgroundColor3 = theme.Surface
+    valueBox.TextXAlignment = Enum.TextXAlignment.Right
+    valueBox.Size = UDim2.new(0.3, 0, 1, 0)
+    valueBox.ClearTextOnFocus = false
+    local boxCorner = Instance.new("UICorner", valueBox)
+    boxCorner.CornerRadius = UDim.new(0, 4)
 
     local sliderFrame = Instance.new("Frame")
     sliderFrame.Size = UDim2.new(1, 0, 0, 20)
@@ -1220,16 +1223,21 @@ function createSlider(parent, theme, options)
     thumbCorner.CornerRadius = UDim.new(1, 0)
 
     local dragging = false
+    local currentValue = options.default
 
-    local function updateSlider(inputPos)
+    local function updateVisuals(value)
+        local scale = (value - options.min) / (options.max - options.min)
+        bar.Size = UDim2.new(scale, 0, 1, 0)
+        thumb.Position = UDim2.new(scale, 0, 0.5, 0)
+        valueBox.Text = string.format("%.2f", value)
+        currentValue = value
+    end
+
+    local function updateFromInput(inputPos)
         if not dragging then return end
         local scale = math.clamp((inputPos.X - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
         local value = options.min + scale * (options.max - options.min)
-
-        bar.Size = UDim2.new(scale, 0, 1, 0)
-        thumb.Position = UDim2.new(scale, 0, 0.5, 0)
-        valueLabel.Text = string.format("%.2f", value)
-
+        updateVisuals(value)
         if options.onChanged then
             options.onChanged(value)
         end
@@ -1238,7 +1246,7 @@ function createSlider(parent, theme, options)
     sliderFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            updateSlider(input.Position)
+            updateFromInput(input.Position)
         end
     end)
 
@@ -1250,11 +1258,422 @@ function createSlider(parent, theme, options)
 
     sliderFrame.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            updateSlider(input.Position)
+            updateFromInput(input.Position)
+        end
+    end)
+
+    valueBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local num = tonumber(valueBox.Text)
+            if num then
+                local clampedValue = math.clamp(num, options.min, options.max)
+                updateVisuals(clampedValue)
+                if options.onChanged then
+                    options.onChanged(clampedValue)
+                end
+            else
+                valueBox.Text = string.format("%.2f", currentValue)
+            end
+        else
+            valueBox.Text = string.format("%.2f", currentValue)
         end
     end)
 
     return container
+end
+
+function createColorEditorUI(parent, theme, options)
+    local container = Instance.new("Frame")
+    container.Name = "ColorEditorContainer"
+    container.Size = UDim2.new(1, 0, 0, 250)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+
+    local listLayout = Instance.new("UIListLayout", container)
+    listLayout.Padding = UDim.new(0, 8)
+
+    local title = Instance.new("TextLabel", container)
+    title.Name = "Title"
+    title.Text = "Theme Colors"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.Size = UDim2.new(1, 0, 0, 20)
+    title.TextColor3 = theme.Text
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = Enum.TextXAlignment.Left
+
+    local propertySelectorFrame = Instance.new("Frame", container)
+    propertySelectorFrame.Size = UDim2.new(1, 0, 0, 24)
+    propertySelectorFrame.BackgroundTransparency = 1
+
+    local propertyLayout = Instance.new("UIListLayout", propertySelectorFrame)
+    propertyLayout.FillDirection = Enum.FillDirection.Horizontal
+    propertyLayout.Padding = UDim.new(0, 5)
+
+    local pickerFrame = Instance.new("Frame", container)
+    pickerFrame.Size = UDim2.new(1, 0, 0, 100)
+    pickerFrame.BackgroundTransparency = 1
+
+    local pickerLayout = Instance.new("UIListLayout", pickerFrame)
+    pickerLayout.FillDirection = Enum.FillDirection.Horizontal
+    pickerLayout.Padding = UDim.new(0, 10)
+    pickerLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local svBox = Instance.new("ImageLabel", pickerFrame)
+    svBox.Size = UDim2.new(0, 100, 0, 100)
+
+    local saturation = Instance.new("UIGradient", svBox)
+    saturation.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1,1,1)), ColorSequenceKeypoint.new(1, Color3.new(1,1,1,0))})
+    saturation.Rotation = 90
+
+    local value = Instance.new("UIGradient", svBox)
+    value.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(0,0,0,0)), ColorSequenceKeypoint.new(1, Color3.new(0,0,0))})
+
+    local svThumb = Instance.new("Frame", svBox)
+    svThumb.Size = UDim2.new(0, 10, 0, 10)
+    svThumb.AnchorPoint = Vector2.new(0.5, 0.5)
+    svThumb.BackgroundColor3 = Color3.new(1,1,1)
+    svThumb.BorderSizePixel = 2
+    svThumb.BorderColor3 = Color3.new(0,0,0)
+    local thumbCorner = Instance.new("UICorner", svThumb)
+    thumbCorner.CornerRadius = UDim.new(1, 0)
+
+    local hueSlider = Instance.new("ImageLabel", pickerFrame)
+    hueSlider.Size = UDim2.new(0, 20, 0, 100)
+
+    local hueGradient = Instance.new("UIGradient", hueSlider)
+    hueGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,0)), ColorSequenceKeypoint.new(1/6, Color3.fromRGB(255,255,0)),
+        ColorSequenceKeypoint.new(2/6, Color3.fromRGB(0,255,0)), ColorSequenceKeypoint.new(3/6, Color3.fromRGB(0,255,255)),
+        ColorSequenceKeypoint.new(4/6, Color3.fromRGB(0,0,255)), ColorSequenceKeypoint.new(5/6, Color3.fromRGB(255,0,255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
+    })
+
+    local hueThumb = Instance.new("Frame", hueSlider)
+    hueThumb.Size = UDim2.new(1, 4, 0, 4)
+    hueThumb.Position = UDim2.fromScale(0.5, 0)
+    hueThumb.AnchorPoint = Vector2.new(0.5, 0.5)
+    hueThumb.BackgroundColor3 = Color3.new(1,1,1)
+    hueThumb.BorderSizePixel = 1
+    hueThumb.BorderColor3 = Color3.new(0,0,0)
+
+    local swatchFrame = Instance.new("Frame", container)
+    swatchFrame.Size = UDim2.new(1, 0, 0, 24)
+    swatchFrame.BackgroundTransparency = 1
+
+    local swatchLayout = Instance.new("UIGridLayout", swatchFrame)
+    swatchLayout.CellSize = UDim2.fromOffset(22, 22)
+    swatchLayout.CellPadding = UDim2.new(0, 4, 0, 4)
+    swatchLayout.FillDirectionMaxCells = 8
+
+    local genericColors = {
+        Color3.fromRGB(255,77,77), Color3.fromRGB(255,166,77), Color3.fromRGB(255,255,77), Color3.fromRGB(77,255,77),
+        Color3.fromRGB(77,77,255), Color3.fromRGB(166,77,255), Color3.fromRGB(255,77,166), Color3.fromRGB(255,255,255)
+    }
+
+    local state = {
+        h = 0, s = 1, v = 1,
+        keypoints = {
+            ColorSequenceKeypoint.new(0, Color3.new(0,0,0)),
+            ColorSequenceKeypoint.new(1, Color3.new(1,1,1))
+        },
+        selectedKeypointIndex = 1
+    }
+    state.editingProperty = "Primary"
+    state.h, state.s, state.v = Color.toHSV(theme[state.editingProperty])
+
+    local renderGradient
+
+    local function updateColor()
+        local finalColor = Color3.fromHSV(state.h, state.s, state.v)
+        svBox.BackgroundColor3 = Color3.fromHSV(state.h, 1, 1)
+        svThumb.Position = UDim2.fromScale(state.s, 1 - state.v)
+        hueThumb.Position = UDim2.new(0.5, 0, state.h, 0)
+
+        local currentKp = state.keypoints[state.selectedKeypointIndex]
+        if currentKp then
+            state.keypoints[state.selectedKeypointIndex] = ColorSequenceKeypoint.new(currentKp.Time, finalColor)
+            if renderGradient then renderGradient() end
+        end
+
+        if options.onChanged then
+            options.onChanged(state.editingProperty, finalColor)
+        end
+    end
+
+    local propertyButtons = {}
+    for propName, _ in pairs(theme) do
+        local btn = Instance.new("TextButton", propertySelectorFrame)
+        btn.Name = propName
+        btn.Text = propName
+        btn.Size = UDim2.new(0, 50, 1, 0)
+        styleButton(btn, "Secondary", theme)
+        table.insert(propertyButtons, btn)
+
+        btn.MouseButton1Click:Connect(function()
+            state.editingProperty = propName
+            state.h, state.s, state.v = Color.toHSV(theme[propName])
+            updateColor()
+            for _, b in ipairs(propertyButtons) do
+                b.BorderSizePixel = (b.Name == propName) and 2 or 1
+            end
+        end)
+    end
+
+    local gradientEditor, rg = createGradientEditor(container, theme, state, updateColor)
+    renderGradient = rg
+
+    local hueDragging = false
+    local svDragging = false
+
+    local function updateHue(inputPos)
+        if not hueDragging then return end
+        h = math.clamp(inputPos.Y / hueSlider.AbsoluteSize.Y, 0, 1)
+        updateColor()
+    end
+
+    local function updateSV(inputPos)
+        if not svDragging then return end
+        local boxSize = svBox.AbsoluteSize
+        local boxPos = svBox.AbsolutePosition
+        s = math.clamp((inputPos.X - boxPos.X) / boxSize.X, 0, 1)
+        v = 1 - math.clamp((inputPos.Y - boxPos.Y) / boxSize.Y, 0, 1)
+        updateColor()
+    end
+
+    hueSlider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            hueDragging = true
+            updateHue(input.Position)
+        end
+    end)
+    hueSlider.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            updateHue(input.Position)
+        end
+    end)
+    hueSlider.InputEnded:Connect(function() hueDragging = false end)
+
+    svBox.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            svDragging = true
+            updateSV(input.Position)
+        end
+    end)
+    svBox.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            updateSV(input.Position)
+        end
+    end)
+    svBox.InputEnded:Connect(function() svDragging = false end)
+
+    for _, swatch in ipairs(swatchFrame:GetChildren()) do
+        if swatch:IsA("TextButton") then
+            swatch.MouseButton1Click:Connect(function()
+                h, s, v = Color.toHSV(swatch.BackgroundColor3)
+                updateColor()
+            end)
+        end
+    end
+
+    updateColor()
+
+    createGradientEditor(container, theme, state, onStateChanged)
+
+    local favoritesContainer = Instance.new("Frame")
+    favoritesContainer.Name = "FavoritesContainer"
+    favoritesContainer.Size = UDim2.new(1, 0, 0, 80)
+    favoritesContainer.BackgroundTransparency = 1
+    favoritesContainer.Parent = container
+
+    local favListLayout = Instance.new("UIListLayout", favoritesContainer)
+    favListLayout.Padding = UDim.new(0, 4)
+
+    local favTitleFrame = Instance.new("Frame", favoritesContainer)
+    favTitleFrame.Size = UDim2.new(1, 0, 0, 20)
+    favTitleFrame.BackgroundTransparency = 1
+
+    local favTitleLayout = Instance.new("UIListLayout", favTitleFrame)
+    favTitleLayout.FillDirection = Enum.FillDirection.Horizontal
+    favTitleLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+    local favTitle = Instance.new("TextLabel", favTitleFrame)
+    favTitle.Text = "Favorites"
+    favTitle.Font = Enum.Font.GothamBold
+    favTitle.TextSize = 12
+    favTitle.TextColor3 = theme.Text
+    favTitle.BackgroundTransparency = 1
+    favTitle.TextXAlignment = Enum.TextXAlignment.Left
+    favTitle.Size = UDim2.new(1, -24, 1, 0)
+
+    local saveBtn = Instance.new("TextButton", favTitleFrame)
+    saveBtn.Text = "+"
+    saveBtn.Size = UDim2.new(0, 20, 1, 0)
+    styleButton(saveBtn, "Secondary", theme)
+
+    local favoritesFrame = Instance.new("ScrollingFrame", favoritesContainer)
+    favoritesFrame.Size = UDim2.new(1, 0, 1, -24)
+    favoritesFrame.BackgroundColor3 = theme.Surface
+    favoritesFrame.BorderSizePixel = 0
+    local favCorner = Instance.new("UICorner", favoritesFrame)
+    favCorner.CornerRadius = UDim.new(0, 4)
+
+    local favFrameLayout = Instance.new("UIGridLayout", favoritesFrame)
+    favFrameLayout.CellSize = UDim2.fromOffset(22, 22)
+    favFrameLayout.CellPadding = UDim2.new(0, 4, 0, 4)
+
+    local function renderFavorites()
+        for _, child in ipairs(favoritesFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+
+        local favs = plugin:GetSetting("favorites")
+        if not favs then favs = {} end
+
+        for _, fav in ipairs(favs) do
+            local swatch = Instance.new("TextButton")
+            swatch.Text = ""
+            swatch.Size = UDim2.fromOffset(22, 22)
+            swatch.Parent = favoritesFrame
+
+            if fav.isGradient then
+                local g = Instance.new("UIGradient", swatch)
+                g.Color = ColorSequence.new(fav.value)
+            else
+                swatch.BackgroundColor3 = Color3.new(fav.value.r, fav.value.g, fav.value.b)
+            end
+
+            swatch.MouseButton1Click:Connect(function()
+                if fav.isGradient then
+                    -- To-do: apply gradient
+                else
+                    state.h, state.s, state.v = Color.toHSV(swatch.BackgroundColor3)
+                    onStateChanged()
+                end
+            end)
+        end
+    end
+
+    saveBtn.MouseButton1Click:Connect(function()
+        local favs = plugin:GetSetting("favorites") or {}
+        local newFav = { isGradient = false, value = { r = state.h, g = state.s, b = state.v } } -- simplified for now
+        table.insert(favs, newFav)
+        plugin:SetSetting("favorites", favs)
+        renderFavorites()
+    end)
+
+    renderFavorites()
+
+    return container
+end
+
+function createGradientEditor(parent, theme, state, onStateChanged)
+    local container = Instance.new("Frame")
+    container.Name = "GradientEditorContainer"
+    container.Size = UDim2.new(1, 0, 0, 60)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+
+    local listLayout = Instance.new("UIListLayout", container)
+    listLayout.Padding = UDim.new(0, 4)
+
+    local title = Instance.new("TextLabel", container)
+    title.Name = "Title"
+    title.Text = "Gradient"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 12
+    title.Size = UDim2.new(1, 0, 0, 16)
+    title.TextColor3 = theme.Text
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = Enum.TextXAlignment.Left
+
+    local editorFrame = Instance.new("Frame", container)
+    editorFrame.Size = UDim2.new(1, 0, 0, 30)
+    editorFrame.BackgroundTransparency = 1
+
+    local editorLayout = Instance.new("UIListLayout", editorFrame)
+    editorLayout.FillDirection = Enum.FillDirection.Horizontal
+    editorLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    editorLayout.Padding = UDim.new(0, 8)
+
+    local preview = Instance.new("ImageLabel", editorFrame)
+    preview.Size = UDim2.new(1, -76, 1, 0)
+    preview.BackgroundColor3 = theme.Surface
+    local previewCorner = Instance.new("UICorner", preview)
+    previewCorner.CornerRadius = UDim.new(0, 4)
+    local previewGradient = Instance.new("UIGradient", preview)
+
+    local addBtn = Instance.new("TextButton", editorFrame)
+    addBtn.Text = "+"
+    addBtn.Size = UDim2.new(0, 30, 1, 0)
+    styleButton(addBtn, "Secondary", theme)
+
+    local removeBtn = Instance.new("TextButton", editorFrame)
+    removeBtn.Text = "-"
+    removeBtn.Size = UDim2.new(0, 30, 1, 0)
+    styleButton(removeBtn, "Secondary", theme)
+
+    local function renderGradient()
+        previewGradient.Color = ColorSequence.new(state.keypoints)
+        for _, child in ipairs(preview:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+        for i, kp in ipairs(state.keypoints) do
+            local marker = Instance.new("TextButton")
+            marker.Text = ""
+            marker.Size = UDim2.new(0, 10, 0, 10)
+            marker.AnchorPoint = Vector2.new(0.5, 0)
+            marker.Position = UDim2.new(kp.Time, 0, 1, 2)
+            marker.BackgroundColor3 = kp.Value
+            marker.BorderSizePixel = (i == state.selectedKeypointIndex) and 2 or 1
+            marker.BorderColor3 = theme.Text
+            marker.Parent = preview
+
+            marker.MouseButton1Click:Connect(function()
+                state.selectedKeypointIndex = i
+                local color = state.keypoints[i].Value
+                state.h, state.s, state.v = Color.toHSV(color)
+                onStateChanged()
+            end)
+
+            local markerDragging = false
+            marker.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    markerDragging = true
+                end
+            end)
+            marker.InputChanged:Connect(function(input)
+                if markerDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    local newTime = math.clamp((input.Position.X - preview.AbsolutePosition.X) / preview.AbsoluteSize.X, 0, 1)
+                    state.keypoints[i] = ColorSequenceKeypoint.new(newTime, kp.Value)
+                    table.sort(state.keypoints, function(a,b) return a.Time < b.Time end)
+                    onStateChanged()
+                end
+            end)
+            marker.InputEnded:Connect(function() markerDragging = false end)
+        end
+    end
+
+    addBtn.MouseButton1Click:Connect(function()
+        local newColor = Color3.fromHSV(state.h, state.s, state.v)
+        table.insert(state.keypoints, ColorSequenceKeypoint.new(0.5, newColor))
+        table.sort(state.keypoints, function(a,b) return a.Time < b.Time end)
+        onStateChanged()
+    end)
+
+    removeBtn.MouseButton1Click:Connect(function()
+        if #state.keypoints > 2 then
+            table.remove(state.keypoints, state.selectedKeypointIndex)
+            state.selectedKeypointIndex = math.max(1, state.selectedKeypointIndex - 1)
+            onStateChanged()
+        end
+    end)
+
+    return container, renderGradient
 end
 
 function populateFinalizationUI(widget, targetElement)
@@ -1332,6 +1751,15 @@ function populateFinalizationUI(widget, targetElement)
         end
     })
     scaleSlider.LayoutOrder = 3
+
+    local colorEditor = createColorEditorUI(mainFrame, Themes[Config.THEME], {
+        onChanged = function(propName, newColor)
+            local currentThemeName = Config.THEME
+            Themes[currentThemeName][propName] = newColor
+            applyTheme(currentThemeName)
+        end
+    })
+    colorEditor.LayoutOrder = 4
 
     local doneBtn = Instance.new("TextButton", mainFrame)
     doneBtn.Name = "DoneButton"
@@ -1429,8 +1857,10 @@ local function initializeUI()
     createSettingsUI(settingsWidget)
 
     local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 340, 180, 340, 180)
+    promptWidgetInfo.override_enabled_state = true
     promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
     promptWidget.Title = "Framify Prompt"
+    promptWidget.Enabled = false
 
     applyTheme(Config.THEME)
 
