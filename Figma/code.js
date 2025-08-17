@@ -1,18 +1,29 @@
 figma.showUI(__html__, { width: 320, height: 470 });
 
-// A map to store image data to handle '#' tag for asset reuse
 const imageAssetMap = new Map();
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'export') {
     imageAssetMap.clear();
-
     const selection = figma.currentPage.selection;
-
     if (selection.length === 0) {
       figma.notify("Please select at least one frame or component.");
       figma.ui.postMessage({ type: 'export-result', mappingString: '', images: [] });
       return;
+    }
+
+    let referenceSize = { x: 0, y: 0 };
+    if (selection.length === 1 && selection[0].parent.type !== "PAGE") {
+        referenceSize = { x: selection[0].parent.width, y: selection[0].parent.height };
+    } else {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        selection.forEach(node => {
+            minX = Math.min(minX, node.x);
+            minY = Math.min(minY, node.y);
+            maxX = Math.max(maxX, node.x + node.width);
+            maxY = Math.max(maxY, node.y + node.height);
+        });
+        referenceSize = { x: maxX - minX, y: maxY - minY };
     }
 
     const mapping = [];
@@ -20,10 +31,13 @@ figma.ui.onmessage = async (msg) => {
       mapping.push(await processNode(node, imageAssetMap));
     }
 
-    const mappingString = JSON.stringify(mapping, null, 2);
+    const exportData = {
+        referenceSize: referenceSize,
+        nodes: mapping
+    };
 
+    const mappingString = JSON.stringify(exportData, null, 2);
     const images = Array.from(imageAssetMap.entries()).map(([id, bytes]) => ({ id, bytes }));
-
     figma.ui.postMessage({ type: 'export-result', mappingString: mappingString, images: images });
   }
 };
@@ -92,7 +106,7 @@ function getNodeProperties(node) {
     rotation: node.rotation,
     opacity: node.opacity,
     visible: node.visible,
-    effects: node.effects, // <-- Added effects property
+    effects: node.effects,
   };
 
   if ('fills' in node) properties.fills = node.fills;
