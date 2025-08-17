@@ -892,32 +892,39 @@ propertyAppliers.Default = function(element, data, parentSize)
         return
     end
 
-    element.AnchorPoint = Vector2.new(0, 0)
+    local anchorPoint = Vector2.new(0, 0)
+    if props.constraints then
+        if props.constraints.horizontal == "CENTER" then
+            anchorPoint = Vector2.new(0.5, anchorPoint.Y)
+        elseif props.constraints.horizontal == "RIGHT" then
+            anchorPoint = Vector2.new(1, anchorPoint.Y)
+        end
+        if props.constraints.vertical == "CENTER" then
+            anchorPoint = Vector2.new(anchorPoint.X, 0.5)
+        elseif props.constraints.vertical == "BOTTOM" then
+            anchorPoint = Vector2.new(anchorPoint.X, 1)
+        end
+    end
+    element.AnchorPoint = anchorPoint
 
     if Config.AUTO_SCALE then
         local parentW = parentSize.X
         local parentH = parentSize.Y
+        if parentW <= 0 or parentH <= 0 then parentW, parentH = 1920, 1080 end
 
-        if parentW <= 0 or parentH <= 0 then
-            -- Fallback for invalid parent size
-            parentW = 1920
-            parentH = 1080
-        end
+        local sizeXScale = props.size.x / parentW
+        local sizeYScale = props.size.y / parentH
+        element.Size = UDim2.fromScale(sizeXScale, sizeYScale)
 
-        local scaleX = props.size.x / parentW
-        local scaleY = props.size.y / parentH
-        local posX = props.position.x / parentW
-        local posY = props.position.y / parentH
-
-        element.Size = UDim2.fromScale(scaleX, scaleY)
-        element.Position = UDim2.fromScale(posX, posY)
+        local posXScale = (props.position.x + (props.size.x * anchorPoint.X)) / parentW
+        local posYScale = (props.position.y + (props.size.y * anchorPoint.Y)) / parentH
+        element.Position = UDim2.fromScale(posXScale, posYScale)
         
         if props.cornerRadius and props.cornerRadius > 0 then
             local c = Instance.new("UICorner")
             c.CornerRadius = UDim.new(0, props.cornerRadius)
             c.Parent = element
         end
-
         applyStrokes(element, props.strokes, props.strokeWeight)
     else
         element.Position = UDim2.fromOffset(props.position.x, props.position.y)
@@ -1011,7 +1018,9 @@ elementCreators.Default = function(data)
         element = Instance.new("ScrollingFrame")
         element.ScrollingDirection = table.find(tags, "scrollx") and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y
         element.ScrollBarThickness = 8
-        element.CanvasSize = UDim2.fromScale(1, 1)
+        element.CanvasSize = UDim2.fromScale(0, 0)
+        local layout = Instance.new("UIListLayout")
+        layout.Parent = element
     else
         element = Instance.new("Frame")
     end
@@ -1043,9 +1052,6 @@ function createFromData(data, parent, parentSize)
         for _, childData in ipairs(data.children) do
             createFromData(childData, element, childParentSize)
         end
-    end
-    if element:IsA("ScrollingFrame") then
-        element.CanvasSize = UDim2.fromScale(1, 1)
     end
     return element
 end
