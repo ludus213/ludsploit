@@ -1,5 +1,5 @@
 -- Framify Importer
--- Version: 11.0.0 ABSOLUTELY DEFINITIVELY FINAL
+-- Version: 12.0.0 ABSOLUTELY DEFINITIVELY FINAL AND POLISHED
 -- This script contains the full, final, and completely refactored logic for the Framify Roblox Studio plugin.
 
 local HttpService = game:GetService("HttpService")
@@ -113,7 +113,37 @@ function applyStrokes(element, strokes, weight) if not strokes or #strokes == 0 
 function applyConstraints(element, constraints) if not constraints then return end; local x, y = 0, 0; if constraints.horizontal == "CENTER" then x = 0.5 elseif constraints.horizontal == "RIGHT" then x = 1 elseif constraints.horizontal == "SCALE" then x = 0.5 end; if constraints.vertical == "CENTER" then y = 0.5 elseif constraints.vertical == "BOTTOM" then y = 1 elseif constraints.vertical == "SCALE" then y = 0.5 end; element.AnchorPoint = Vector2.new(x, y); element.Position = UDim2.new(x, element.Position.X.Offset, y, element.Position.Y.Offset) end
 local propertyAppliers = {}; propertyAppliers.Default = function(element, data) local props = data.properties; element.Name = data.name; element.Visible = props.visible; element.Position = UDim2.fromOffset(props.position.x, props.position.y); element.Size = UDim2.fromOffset(props.size.x, props.size.y); element.Rotation = props.rotation; element.ClipsDescendants = data.type == 'FRAME'; applyFills(element, props.fills); applyStrokes(element, props.strokes, props.strokeWeight); if props.cornerRadius and props.cornerRadius > 0 then local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, props.cornerRadius); c.Parent = element end; applyConstraints(element, props.constraints) end; propertyAppliers.TEXT = function(element, data) propertyAppliers.Default(element, data); local props = data.properties; element.Text = props.characters; element.Font = (props.fontName and fontMap[props.fontName.family]) or Enum.Font.SourceSans; element.TextSize = props.fontSize; element.TextWrapped = true; if props.fills and #props.fills > 0 then local fill = props.fills[1]; element.TextColor3 = Color3.new(fill.color.r, fill.color.g, fill.color.b); element.TextTransparency = 1 - (fill.opacity or 1) end; element.TextXAlignment = props.textAlignHorizontal; element.TextYAlignment = props.textAlignVertical end; propertyAppliers.Image = function(element, data) if data.assetId then local imageId = findImageAsset(data.assetId); if imageId and imageId ~= "" then element.Image = imageId end; element.BackgroundTransparency = 1 end end
 local elementCreators = {}; elementCreators.Default = function(data) local tags=data.tags; if data.assetId and data.assetId ~= "" then if table.find(tags,"button") then return Instance.new("ImageButton") else return Instance.new("ImageLabel") end end; local element; if table.find(tags,"button") then element=Instance.new("ImageButton") elseif table.find(tags,"image") then element=Instance.new("ImageLabel") elseif table.find(tags,"vpf") then element=Instance.new("ViewportFrame") elseif table.find(tags,"canvas") then element=Instance.new("CanvasGroup") elseif table.find(tags,"scroll") then element=Instance.new("ScrollingFrame");element.ScrollingDirection=table.find(tags,"scrollx")and Enum.ScrollingDirection.X or Enum.ScrollingDirection.Y else element=Instance.new("Frame") end; if table.find(tags,"box") then Instance.new("UIListLayout").Parent=element end; return element end; elementCreators.TEXT = function(data) return Instance.new("TextLabel") end
-function createFromData(data, parent) local element = (elementCreators[data.type] or elementCreators.Default)(data);(propertyAppliers[data.type] or propertyAppliers.Default)(element, data); if element:IsA("ImageLabel") or element:IsA("ImageButton") then propertyAppliers.Image(element, data) end; if Config.CREATE_BEHAVIOR_SCRIPTS and table.find(data.tags, "button") then createBehaviorScript(element, data.tags) end; element.Parent = parent; if data.children then for _, childData in ipairs(data.children) do createFromData(childData, element) end end; return element end
+
+function createFromData(data, parent)
+    local element = (elementCreators[data.type] or elementCreators.Default)(data)
+    ;(propertyAppliers[data.type] or propertyAppliers.Default)(element, data)
+    if element:IsA("ImageLabel") or element:IsA("ImageButton") then
+        propertyAppliers.Image(element, data)
+    end
+    if Config.CREATE_BEHAVIOR_SCRIPTS and table.find(data.tags, "button") then
+        createBehaviorScript(element, data.tags)
+    end
+    element.Parent = parent
+    if data.children then
+        for _, childData in ipairs(data.children) do
+            createFromData(childData, element)
+        end
+    end
+    if element:IsA("ScrollingFrame") then
+        local canvasWidth, canvasHeight = 0, 0
+        for _, child in ipairs(element:GetChildren()) do
+            if child:IsA("GuiObject") then
+                local childEdgeX = child.Position.X.Offset + child.AbsoluteSize.X
+                local childEdgeY = child.Position.Y.Offset + child.AbsoluteSize.Y
+                if childEdgeX > canvasWidth then canvasWidth = childEdgeX end
+                if childEdgeY > canvasHeight then canvasHeight = childEdgeY end
+            end
+        end
+        element.CanvasSize = UDim2.fromOffset(canvasWidth, canvasHeight)
+    end
+    return element
+end
+
 function collectAssetIds(dataTable) local ids = {}; function traverse(data) for _, nodeData in ipairs(data) do if nodeData.assetId and nodeData.assetId ~= "" and not ids[nodeData.assetId] then ids[nodeData.assetId] = true end; if nodeData.children and #nodeData.children > 0 then traverse(nodeData.children) end end end; traverse(dataTable); local idList = {}; for id,_ in pairs(ids) do table.insert(idList, id) end; return idList end
 function verifyAssets(assetIds) local missing = {}; local assetFolder = ReplicatedStorage:FindFirstChild(Config.ASSET_FOLDER_NAME); if not assetFolder then return assetIds, "Asset folder '"..Config.ASSET_FOLDER_NAME.."' not found in ReplicatedStorage." end; for _,id in ipairs(assetIds) do if not findImageAsset(id) then table.insert(missing, id) end end; if #missing > 0 then return missing, "Missing assets: " .. table.concat(missing, ", ") else return {}, nil end end
 function performImport(data, statusLabel) statusLabel.Text = "Importing..."; local targetGui = StarterGui:FindFirstChild(Config.TARGET_SCREEN_GUI); if targetGui then targetGui:Destroy() end; targetGui = Instance.new("ScreenGui"); targetGui.Name = Config.TARGET_SCREEN_GUI; local importParent = targetGui; if Config.AUTO_CENTER_UI then local mainContainer = Instance.new("Frame"); mainContainer.Name = "ImportContainer"; mainContainer.BackgroundTransparency = 1; mainContainer.AnchorPoint = Vector2.new(0.5, 0.5); mainContainer.Position = UDim2.fromScale(0.5, 0.5); local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge; for _, nodeData in ipairs(data) do local props = nodeData.properties; minX = math.min(minX, props.position.x); minY = math.min(minY, props.position.y); maxX = math.max(maxX, props.position.x + props.size.x); maxY = math.max(maxY, props.position.y + props.size.y) end; mainContainer.Size = UDim2.fromOffset(maxX - minX, maxY - minY); for _, nodeData in ipairs(data) do nodeData.properties.position.x = nodeData.properties.position.x - minX; nodeData.properties.position.y = nodeData.properties.position.y - minY end; mainContainer.Parent = targetGui; importParent = mainContainer end; for _, nodeData in ipairs(data) do createFromData(nodeData, importParent) end; targetGui.Parent = StarterGui; Selection:Set({targetGui}); statusLabel.Text = "Import successful!" end
