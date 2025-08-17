@@ -1857,7 +1857,6 @@ local function initializeUI()
     createSettingsUI(settingsWidget)
 
     local promptWidgetInfo = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, false, 340, 180, 340, 180)
-    promptWidgetInfo.override_enabled_state = true
     promptWidget = plugin:CreateDockWidgetPluginGui("FramifyPrompt", promptWidgetInfo)
     promptWidget.Title = "Framify Prompt"
     promptWidget.Enabled = false
