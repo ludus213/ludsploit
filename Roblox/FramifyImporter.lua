@@ -50,6 +50,28 @@ function styleButton(button, styleType, theme)
     stroke.Parent = button
 end
 
+function styleDropdown(theme)
+    if UI.SettingsThemeDropdown then
+        styleButton(UI.SettingsThemeDropdown, "Secondary", theme)
+    end
+    if UI.SettingsThemeOptionsFrame then
+        UI.SettingsThemeOptionsFrame.BackgroundColor3 = theme.Surface
+        UI.SettingsThemeOptionsFrame.BorderColor3 = theme.Border
+        for _, child in ipairs(UI.SettingsThemeOptionsFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.BackgroundColor3 = theme.Surface
+                child.TextColor3 = theme.Text
+                child.Font = Enum.Font.Gotham
+                local stroke = child:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
+                stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                stroke.Color = theme.Border
+                stroke.Thickness = 1
+                stroke.Parent = child
+            end
+        end
+    end
+end
+
 function applyTheme(themeName)
     local theme = Themes[themeName] or Themes["Dracula"]
     Config.THEME = themeName
@@ -61,18 +83,15 @@ function applyTheme(themeName)
         elseif name:match("TextScrollFrame") then element.BackgroundColor3 = theme.Surface; element.BorderColor3 = theme.Border
         elseif name:match("TextBox") then element.BackgroundColor3 = theme.Surface; element.TextColor3 = theme.Text; element.PlaceholderColor3 = theme.TextSecondary
         elseif name:match("Icon") then element.ImageColor3 = theme.TextSecondary
-        elseif name:match("OptionsFrame") then element.BackgroundColor3 = theme.Surface; element.BorderColor3 = theme.Border
         end
         if element:IsA("TextButton") then
             local style = element:GetAttribute("StyleType")
             if style then
                 styleButton(element, style, theme)
-                if name:match("ThemeOption_") then
-                    element.TextColor3 = theme.Text
-                end
             end
         end
     end
+    styleDropdown(theme)
 end
 
 function createLoadingUI(widget)
@@ -124,23 +143,23 @@ function createSettingsUI(widget)
     local at = Instance.new("TextBox",f); at.Name="TextBox"; at.LayoutOrder=3; at.Text=Config.ASSET_FOLDER_NAME; at.Size=UDim2.new(1,0,0,35); at.Font=Enum.Font.Code; at.TextScaled=true; UI.SettingsAssetText=at; at.FocusLost:Connect(function() Config.ASSET_FOLDER_NAME=at.Text end)
 
     local tl = Instance.new("TextLabel",f); tl.Name="Label"; tl.LayoutOrder=6; tl.Text="Theme"; tl.Size=UDim2.new(1,0,0,18); tl.Font=Enum.Font.Gotham; tl.TextSize=14; tl.BackgroundTransparency=1; tl.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsThemeLabel=tl
-    local df = Instance.new("Frame",f); df.Name="DropdownFrame"; df.LayoutOrder=7; df.Size=UDim2.new(1,0,0,35); df.BackgroundTransparency=1; df.ZIndex=10; UI.SettingsDropdownFrame = df
+    local df = Instance.new("Frame",f); df.Name="DropdownContainer"; df.LayoutOrder=7; df.Size=UDim2.new(1,0,0,35); df.BackgroundTransparency=1; df.ZIndex=10
     local d = Instance.new("TextButton",df); d:SetAttribute("StyleType", "Secondary"); d.Size=UDim2.fromScale(1,1); d.Text=Config.THEME; UI.SettingsThemeDropdown=d
 
-    local o = Instance.new("ScrollingFrame",f); o.Name="OptionsFrame"; o.LayoutOrder=8; o.ZIndex=20; o.Size=UDim2.new(1,0,0,125); o.Visible=false; o.BorderSizePixel=1; UI.SettingsThemeOptionsFrame=o
-    local ol = Instance.new("UIListLayout",o); ol.SortOrder = Enum.SortOrder.LayoutOrder
+    local o = Instance.new("ScrollingFrame",f); o.Name="OptionsFrame"; o.LayoutOrder=8; o.ZIndex=20; o.Size=UDim2.new(1,0,0,125); o.Visible=false; UI.SettingsThemeOptionsFrame=o
+    local ol = Instance.new("UIListLayout",o); ol.Padding = UDim.new(0,5); ol.SortOrder = Enum.SortOrder.LayoutOrder
 
-    d.MouseButton1Click:Connect(function() o.Visible=not o.Visible end)
+    d.MouseButton1Click:Connect(function() o.Visible = not o.Visible end)
 
     for name,_ in pairs(Themes) do
-        local b=Instance.new("TextButton",o);
-        b:SetAttribute("StyleType", "Secondary");
-        b.Size=UDim2.new(1,0,0,30);
-        b.Text=name;
-        UI["ThemeOption_"..name]=b;
+        local b=Instance.new("TextButton",o)
+        b.Size=UDim2.new(1,0,0,30)
+        b.Text=name
+        b.BackgroundTransparency = 1
+        UI["ThemeOption_"..name]=b
         b.MouseButton1Click:Connect(function()
-            d.Text=name;
-            o.Visible=false;
+            d.Text=name
+            o.Visible=false
             applyTheme(name)
         end)
     end
