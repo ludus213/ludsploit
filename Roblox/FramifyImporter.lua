@@ -1110,6 +1110,7 @@ function performImport(data, statusLabel)
     end
     targetGui = Instance.new("ScreenGui")
     targetGui.Name = Config.TARGET_SCREEN_GUI
+    targetGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
     local nodes = data.nodes or {}
     
@@ -1516,13 +1517,13 @@ function createColorEditorUI(parent, theme, options)
 
     local saveColorBtn = Instance.new("TextButton", favTitleFrame)
     saveColorBtn.Text = "C+"
-    saveColorBtn.ToolTip = "Save Current Color"
+    saveColorBtn.Tooltip = "Save Current Color"
     saveColorBtn.Size = UDim2.new(0, 22, 1, 0)
     styleButton(saveColorBtn, "Secondary", theme)
 
     local saveGradientBtn = Instance.new("TextButton", favTitleFrame)
     saveGradientBtn.Text = "G+"
-    saveGradientBtn.ToolTip = "Save Current Gradient"
+    saveGradientBtn.Tooltip = "Save Current Gradient"
     saveGradientBtn.Size = UDim2.new(0, 22, 1, 0)
     styleButton(saveGradientBtn, "Secondary", theme)
 
