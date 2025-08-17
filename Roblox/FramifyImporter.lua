@@ -193,6 +193,7 @@ function createLoadingUI(widget)
     topHalf.BackgroundColor3 = Themes[Config.THEME].BG
     topHalf.BorderSizePixel = 0
     topHalf.ClipsDescendants = true
+    topHalf.ZIndex = 10
     topHalf.Parent = container
     UI.LoadingTopHalf = topHalf
 
@@ -203,6 +204,7 @@ function createLoadingUI(widget)
     bottomHalf.BackgroundColor3 = Themes[Config.THEME].BG
     bottomHalf.BorderSizePixel = 0
     bottomHalf.ClipsDescendants = true
+    bottomHalf.ZIndex = 10
     bottomHalf.Parent = container
     UI.LoadingBottomHalf = bottomHalf
 
