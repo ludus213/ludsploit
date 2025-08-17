@@ -50,34 +50,6 @@ function styleButton(button, styleType, theme)
     stroke.Parent = button
 end
 
-function styleDropdown(theme)
-    if UI.SettingsThemeDropdown then
-        styleButton(UI.SettingsThemeDropdown, "Secondary", theme)
-    end
-    if UI.SettingsThemeOptionsFrame then
-        UI.SettingsThemeOptionsFrame.BackgroundColor3 = theme.Surface
-        UI.SettingsThemeOptionsFrame.BorderColor3 = theme.Border
-        for _, child in ipairs(UI.SettingsThemeOptionsFrame:GetChildren()) do
-            if child:IsA("TextButton") then
-                child.BackgroundTransparency = 0
-                child.BackgroundColor3 = theme.Surface
-                child.TextColor3 = theme.Text
-                child.Font = Enum.Font.Gotham
-
-                child.MouseEnter:Connect(function()
-                    TweenService:Create(child, TweenInfo.new(0.1), { BackgroundColor3 = theme.Primary }):Play()
-                    child.TextColor3 = theme.BG
-                end)
-
-                child.MouseLeave:Connect(function()
-                    TweenService:Create(child, TweenInfo.new(0.1), { BackgroundColor3 = theme.Surface }):Play()
-                    child.TextColor3 = theme.Text
-                end)
-            end
-        end
-    end
-end
-
 function applyTheme(themeName)
     local theme = Themes[themeName] or Themes["Dracula"]
     Config.THEME = themeName
@@ -97,7 +69,20 @@ function applyTheme(themeName)
             end
         end
     end
-    styleDropdown(theme)
+    if UI.SettingsThemeDropdown then
+        styleButton(UI.SettingsThemeDropdown, "Secondary", theme)
+        local optionsFrame = UI.SettingsThemeOptionsFrame
+        if optionsFrame then
+            optionsFrame.BackgroundColor3 = theme.Surface
+            optionsFrame.BorderColor3 = theme.Border
+            for _, child in ipairs(optionsFrame:GetChildren()) do
+                if child:IsA("TextButton") then
+                    child.BackgroundColor3 = theme.Surface
+                    child.TextColor3 = theme.Text
+                end
+            end
+        end
+    end
 end
 
 function createLoadingUI(widget)
@@ -149,28 +134,59 @@ function createSettingsUI(widget)
     local at = Instance.new("TextBox",f); at.Name="TextBox"; at.LayoutOrder=3; at.Text=Config.ASSET_FOLDER_NAME; at.Size=UDim2.new(1,0,0,35); at.Font=Enum.Font.Code; at.TextScaled=true; UI.SettingsAssetText=at; at.FocusLost:Connect(function() Config.ASSET_FOLDER_NAME=at.Text end)
 
     local tl = Instance.new("TextLabel",f); tl.Name="Label"; tl.LayoutOrder=6; tl.Text="Theme"; tl.Size=UDim2.new(1,0,0,18); tl.Font=Enum.Font.Gotham; tl.TextSize=14; tl.BackgroundTransparency=1; tl.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsThemeLabel=tl
-    local df = Instance.new("Frame",f); df.Name="DropdownContainer"; df.LayoutOrder=7; df.Size=UDim2.new(1,0,0,35); df.BackgroundTransparency=1; df.ZIndex=10
-    local d = Instance.new("TextButton",df); d:SetAttribute("StyleType", "Secondary"); d.Size=UDim2.fromScale(1,1); d.Text=Config.THEME; UI.SettingsThemeDropdown=d
 
-    local o = Instance.new("ScrollingFrame",f); o.Name="OptionsFrame"; o.LayoutOrder=8; o.ZIndex=20; o.Size=UDim2.new(1,0,0,0); o.ClipsDescendants=true; o.Visible=false; UI.SettingsThemeOptionsFrame=o
-    local ol = Instance.new("UIListLayout",o); ol.Padding = UDim.new(0,5); ol.SortOrder = Enum.SortOrder.LayoutOrder
+    local dropdownContainer = Instance.new("Frame", f)
+    dropdownContainer.Name = "DropdownContainer"
+    dropdownContainer.LayoutOrder = 7
+    dropdownContainer.Size = UDim2.new(1, 0, 0, 35)
+    dropdownContainer.BackgroundTransparency = 1
+    dropdownContainer.ZIndex = 10
 
-    d.MouseButton1Click:Connect(function()
-        o.Visible = not o.Visible
-        local goalSize = o.Visible and UDim2.new(1,0,0,125) or UDim2.new(1,0,0,0)
-        TweenService:Create(o, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = goalSize }):Play()
+    local dropdownButton = Instance.new("TextButton", dropdownContainer)
+    dropdownButton:SetAttribute("StyleType", "Secondary")
+    dropdownButton.Size = UDim2.fromScale(1,1)
+    dropdownButton.Text = Config.THEME
+    UI.SettingsThemeDropdown = dropdownButton
+
+    local optionsFrame = Instance.new("ScrollingFrame", f)
+    optionsFrame.Name = "OptionsFrame"
+    optionsFrame.LayoutOrder = 8
+    optionsFrame.Size = UDim2.new(1, 0, 0, 0)
+    optionsFrame.ClipsDescendants = true
+    optionsFrame.Visible = false
+    optionsFrame.ZIndex = 20
+    UI.SettingsThemeOptionsFrame = optionsFrame
+
+    local optionsLayout = Instance.new("UIListLayout", optionsFrame)
+    optionsLayout.Padding = UDim.new(0, 5)
+    optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    dropdownButton.MouseButton1Click:Connect(function()
+        optionsFrame.Visible = not optionsFrame.Visible
+        local goalSize = optionsFrame.Visible and UDim2.new(1, 0, 0, 125) or UDim2.new(1, 0, 0, 0)
+        TweenService:Create(optionsFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = goalSize}):Play()
     end)
 
-    for name,_ in pairs(Themes) do
-        local b=Instance.new("TextButton",o)
-        b.Size=UDim2.new(1,0,0,30)
-        b.Text=name
-        UI["ThemeOption_"..name]=b
-        b.MouseButton1Click:Connect(function()
-            d.Text=name
-            o.Visible=false
-            o.Size = UDim2.new(1,0,0,0)
-            applyTheme(name)
+    for themeName, theme in pairs(Themes) do
+        local optionButton = Instance.new("TextButton", optionsFrame)
+        optionButton.Name = themeName
+        optionButton.Text = themeName
+        optionButton.Size = UDim2.new(1, 0, 0, 30)
+        optionButton.BackgroundTransparency = 1
+        optionButton.Font = Enum.Font.Gotham
+
+        optionButton.MouseEnter:Connect(function()
+            optionButton.TextColor3 = theme.Primary
+        end)
+        optionButton.MouseLeave:Connect(function()
+            optionButton.TextColor3 = theme.Text
+        end)
+
+        optionButton.MouseButton1Click:Connect(function()
+            dropdownButton.Text = themeName
+            optionsFrame.Visible = false
+            optionsFrame.Size = UDim2.new(1, 0, 0, 0)
+            applyTheme(themeName)
         end)
     end
 
@@ -244,7 +260,7 @@ function performImport(data, statusLabel) statusLabel.Text = "Importing..."; loc
 
 local toolbar = plugin:CreateToolbar("Framify")
 local mainPluginButton = toolbar:CreateButton("Framify Importer", "Open Framify Importer", "rbxassetid://127991582997910")
-local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://127991582997910")
+local settingsPluginButton = toolbar:CreateButton("Framify Settings", "Open Framify Settings", "rbxassetid://93472476640298")
 
 local mainWidget = plugin:CreateDockWidgetPluginGui("FramifyImporter", DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, true, 360, 550, 360, 550))
 mainWidget.Title = "Framify Importer"
@@ -309,8 +325,8 @@ local function playLoadingAnimation()
     UI.MainFrame.Visible = false
     UI.MainLogo.Parent = nil
 
-    local logoMoveTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(finalPosition.X, finalPosition.Y) })
-    local logoResizeTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(finalSize.X,finalSize.Y) })
+    local logoMoveTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = finalPosition })
+    local logoResizeTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = finalSize })
 
     logoMoveTween:Play()
     logoResizeTween:Play()
