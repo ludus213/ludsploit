@@ -209,17 +209,13 @@ function createLoadingUI(widget)
     UI.LoadingBottomHalf = bottomHalf
     
     local function addGradient(parent)
+        local theme = Themes[Config.THEME]
         local gradient = Instance.new("UIGradient", parent)
         gradient.Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Themes[Config.THEME].BG),
-            ColorSequenceKeypoint.new(0.5, Color3.new(
-                math.min(1, Themes[Config.THEME].BG.R * 1.1),
-                math.min(1, Themes[Config.THEME].BG.G * 1.1),
-                math.min(1, Themes[Config.THEME].BG.B * 1.1)
-            )),
-            ColorSequenceKeypoint.new(1, Themes[Config.THEME].BG)
+            ColorSequenceKeypoint.new(0, theme.BG),
+            ColorSequenceKeypoint.new(1, theme.BG:Lerp(theme.Primary, 0.3))
         }
-        gradient.Rotation = 45
+        gradient.Rotation = 90
     end
     addGradient(topHalf)
     addGradient(bottomHalf)
@@ -266,6 +262,7 @@ function createLoadingUI(widget)
     barBG.BackgroundColor3 = Themes[Config.THEME].Surface
     barBG.BorderSizePixel = 0
     barBG.Size = UDim2.fromScale(1, 1)
+    barBG.ZIndex = barContainer.ZIndex
     local barBGCorner = Instance.new("UICorner", barBG)
     barBGCorner.CornerRadius = UDim.new(0.5, 0)
 
@@ -275,6 +272,7 @@ function createLoadingUI(widget)
     bar.BorderSizePixel = 0
     bar.Size = UDim2.fromScale(0, 1)
     bar.Position = UDim2.fromScale(0, 0)
+    bar.ZIndex = barContainer.ZIndex + 1
     UI.LoadingBar = bar
 
     local barCorner = Instance.new("UICorner", bar)
