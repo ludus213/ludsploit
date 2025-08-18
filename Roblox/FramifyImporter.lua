@@ -182,6 +182,7 @@ function createLoadingUI(widget)
     container.Name = "LoadingContainer"
     container.Size = UDim2.fromScale(1, 1)
     container.BackgroundTransparency = 1
+    container.ZIndex = 100
     container.Parent = widget
     UI.LoadingContainer = container
 
@@ -192,6 +193,7 @@ function createLoadingUI(widget)
     topHalf.BackgroundColor3 = Themes[Config.THEME].BG
     topHalf.BorderSizePixel = 0
     topHalf.ClipsDescendants = true
+    topHalf.ZIndex = 101
     topHalf.Parent = container
     UI.LoadingTopHalf = topHalf
 
@@ -202,6 +204,7 @@ function createLoadingUI(widget)
     bottomHalf.BackgroundColor3 = Themes[Config.THEME].BG
     bottomHalf.BorderSizePixel = 0
     bottomHalf.ClipsDescendants = true
+    bottomHalf.ZIndex = 101
     bottomHalf.Parent = container
     UI.LoadingBottomHalf = bottomHalf
     
@@ -230,6 +233,7 @@ function createLoadingUI(widget)
     logo.Position = UDim2.new(0.5, 0, 0.85, 0)
     logo.ImageTransparency = 1
     logo.ScaleType = Enum.ScaleType.Fit
+    logo.ZIndex = 102
     UI.LoadingLogo = logo
 
     local titleLabel = Instance.new("TextLabel", topHalf)
@@ -245,6 +249,7 @@ function createLoadingUI(widget)
     titleLabel.Position = UDim2.new(0.5, 0, 0.98, 0)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Center
     titleLabel.TextTransparency = 1
+    titleLabel.ZIndex = 102
     UI.LoadingTitle = titleLabel
     
     local barContainer = Instance.new("Frame", bottomHalf)
@@ -253,6 +258,7 @@ function createLoadingUI(widget)
     barContainer.Size = UDim2.new(0.6, 0, 0, 6)
     barContainer.AnchorPoint = Vector2.new(0.5, 0)
     barContainer.Position = UDim2.new(0.5, 0, 0.1, 0)
+    barContainer.ZIndex = 102
     UI.LoadingBarContainer = barContainer
 
     local barBG = Instance.new("Frame", barContainer)
@@ -287,6 +293,7 @@ function createLoadingUI(widget)
     subtitleLabel.Position = UDim2.new(0.5, 0, 0.2, 0)
     subtitleLabel.TextXAlignment = Enum.TextXAlignment.Center
     subtitleLabel.TextTransparency = 1
+    subtitleLabel.ZIndex = 102
     UI.LoadingSubtitle = subtitleLabel
 
     return container, logo, bar
@@ -907,7 +914,12 @@ propertyAppliers.Default = function(element, data, parentSize)
     end
     element.AnchorPoint = anchorPoint
 
-    if Config.AUTO_SCALE then
+    local useScale = Config.AUTO_SCALE
+    if data.tags and (table.find(data.tags, "noScale") or table.find(data.tags, "abs")) then
+        useScale = false
+    end
+
+    if useScale then
         local parentW = parentSize.X
         local parentH = parentSize.Y
         if parentW <= 0 or parentH <= 0 then parentW, parentH = 1920, 1080 end
@@ -936,6 +948,12 @@ propertyAppliers.Default = function(element, data, parentSize)
             c.Parent = element
         end
         applyStrokes(element, props.strokes, props.strokeWeight)
+    end
+
+    if data.tags and table.find(data.tags, "lock") then
+        local ar = Instance.new("UIAspectRatioConstraint")
+        ar.AspectRatio = props.size.x / props.size.y
+        ar.Parent = element
     end
 end
 
@@ -986,6 +1004,12 @@ propertyAppliers.Image = function(element, data)
         end
         element.BackgroundTransparency = 1
         element.ScaleType = Enum.ScaleType.Fit
+
+        if data.tags and table.find(data.tags, "gray") then
+            local cc = Instance.new("ColorCorrectionEffect")
+            cc.Saturation = -1
+            cc.Parent = element
+        end
     end
 end
 
@@ -1021,23 +1045,31 @@ elementCreators.Default = function(data)
         element.CanvasSize = UDim2.fromScale(0, 0)
         local layout = Instance.new("UIListLayout")
         layout.Parent = element
+    elseif table.find(tags, "box") then
+        element = Instance.new("TextBox")
     else
         element = Instance.new("Frame")
-    end
-    if table.find(tags, "box") then
-        local layout = Instance.new("UIListLayout")
-        layout.Parent = element
     end
     return element
 end
 
 elementCreators.TEXT = function(data)
-    local label = Instance.new("TextLabel")
-    label.TextScaled = true
-    return label
+    if data.tags and table.find(data.tags, "button") then
+        local btn = Instance.new("TextButton")
+        btn.TextScaled = true
+        return btn
+    else
+        local label = Instance.new("TextLabel")
+        label.TextScaled = true
+        return label
+    end
 end
 
 function createFromData(data, parent, parentSize)
+    if data.tags and table.find(data.tags, "ignore") then
+        return nil
+    end
+
     local element = (elementCreators[data.type] or elementCreators.Default)(data)
     ;(propertyAppliers[data.type] or propertyAppliers.Default)(element, data, parentSize)
     if element:IsA("ImageLabel") or element:IsA("ImageButton") then
@@ -1047,12 +1079,38 @@ function createFromData(data, parent, parentSize)
         createBehaviorScript(element, data.tags)
     end
     element.Parent = parent
+
     if data.children and #data.children > 0 then
-        local childParentSize = Vector2.new(data.properties.size.x, data.properties.size.y)
+        local parentNodeData
         for _, childData in ipairs(data.children) do
-            createFromData(childData, element, childParentSize)
+            if childData.tags and table.find(childData.tags, "parent") then
+                parentNodeData = childData
+                break
+            end
+        end
+
+        local childParentSize = Vector2.new(data.properties.size.x, data.properties.size.y)
+
+        if parentNodeData then
+            -- A node with _parent tag is found. It becomes the parent for its siblings.
+            local parentElement = createFromData(parentNodeData, element, childParentSize)
+
+            if parentElement then
+                local newParentSize = Vector2.new(parentNodeData.properties.size.x, parentNodeData.properties.size.y)
+                for _, childData in ipairs(data.children) do
+                    if childData ~= parentNodeData then
+                        createFromData(childData, parentElement, newParentSize)
+                    end
+                end
+            end
+        else
+            -- No node with _parent tag, process children normally.
+            for _, childData in ipairs(data.children) do
+                createFromData(childData, element, childParentSize)
+            end
         end
     end
+
     return element
 end
 
