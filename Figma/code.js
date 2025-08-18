@@ -28,7 +28,10 @@ figma.ui.onmessage = async (msg) => {
 
     const mapping = [];
     for (const node of selection) {
-      mapping.push(await processNode(node, imageAssetMap));
+      const processedNode = await processNode(node, imageAssetMap);
+      if (processedNode) {
+        mapping.push(processedNode);
+      }
     }
 
     const exportData = {
@@ -44,6 +47,9 @@ figma.ui.onmessage = async (msg) => {
 
 async function processNode(node, assetMap) {
   const tags = parseTags(node.name);
+  if (tags.includes('ignore')) {
+    return null;
+  }
   const assetId = parseAssetId(node.name);
 
   const nodeData = {
@@ -82,7 +88,10 @@ async function processNode(node, assetMap) {
 
   if ('children' in node) {
     for (const child of node.children) {
-      nodeData.children.push(await processNode(child, assetMap));
+      const processedChild = await processNode(child, assetMap);
+      if (processedChild) {
+        nodeData.children.push(processedChild);
+      }
     }
   }
 

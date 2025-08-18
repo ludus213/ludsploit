@@ -178,61 +178,44 @@ function applyTheme(themeName)
 end
 
 function createLoadingUI(widget)
-    local container = Instance.new("Frame")
+    local container = Instance.new("CanvasGroup")
     container.Name = "LoadingContainer"
     container.Size = UDim2.fromScale(1, 1)
     container.BackgroundTransparency = 1
+    container.ZIndex = 100
     container.Parent = widget
     UI.LoadingContainer = container
 
-    local topHalf = Instance.new("Frame")
-    topHalf.Name = "TopHalf"
-    topHalf.Size = UDim2.new(1, 0, 0.5, 0)
-    topHalf.Position = UDim2.new(0, 0, 0, 0)
-    topHalf.BackgroundColor3 = Themes[Config.THEME].BG
-    topHalf.BorderSizePixel = 0
-    topHalf.ClipsDescendants = true
-    topHalf.Parent = container
-    UI.LoadingTopHalf = topHalf
+    local bg = Instance.new("Frame")
+    bg.Name = "Background"
+    bg.Size = UDim2.fromScale(1, 1)
+    bg.BackgroundColor3 = Themes[Config.THEME].BG
+    bg.BorderSizePixel = 0
+    bg.Parent = container
 
-    local bottomHalf = Instance.new("Frame")
-    bottomHalf.Name = "BottomHalf"
-    bottomHalf.Size = UDim2.new(1, 0, 0.5, 0)
-    bottomHalf.Position = UDim2.new(0, 0, 0.5, 0)
-    bottomHalf.BackgroundColor3 = Themes[Config.THEME].BG
-    bottomHalf.BorderSizePixel = 0
-    bottomHalf.ClipsDescendants = true
-    bottomHalf.Parent = container
-    UI.LoadingBottomHalf = bottomHalf
-    
-    local function addGradient(parent)
-        local gradient = Instance.new("UIGradient", parent)
-        gradient.Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Themes[Config.THEME].BG),
-            ColorSequenceKeypoint.new(0.5, Color3.new(
-                math.min(1, Themes[Config.THEME].BG.R * 1.1),
-                math.min(1, Themes[Config.THEME].BG.G * 1.1),
-                math.min(1, Themes[Config.THEME].BG.B * 1.1)
-            )),
-            ColorSequenceKeypoint.new(1, Themes[Config.THEME].BG)
-        }
-        gradient.Rotation = 45
-    end
-    addGradient(topHalf)
-    addGradient(bottomHalf)
+    local gradient = Instance.new("UIGradient", bg)
+    gradient.Rotation = 90
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.new(
+            math.min(1, Themes[Config.THEME].BG.R * 1.2),
+            math.min(1, Themes[Config.THEME].BG.G * 1.2),
+            math.min(1, Themes[Config.THEME].BG.B * 1.2)
+        )),
+        ColorSequenceKeypoint.new(1, Themes[Config.THEME].BG)
+    })
 
-    local logo = Instance.new("ImageLabel", topHalf)
+    local logo = Instance.new("ImageLabel", bg)
     logo.Name = "Logo"
     logo.Image = "rbxassetid://127991582997910"
     logo.BackgroundTransparency = 1
     logo.Size = UDim2.new(0, 40, 0, 52)
-    logo.AnchorPoint = Vector2.new(0.5, 1)
-    logo.Position = UDim2.new(0.5, 0, 0.85, 0)
+    logo.AnchorPoint = Vector2.new(0.5, 0.5)
+    logo.Position = UDim2.new(0.5, 0, 0.4, 0)
     logo.ImageTransparency = 1
     logo.ScaleType = Enum.ScaleType.Fit
     UI.LoadingLogo = logo
 
-    local titleLabel = Instance.new("TextLabel", topHalf)
+    local titleLabel = Instance.new("TextLabel", bg)
     titleLabel.Name = "LoadingTitle"
     titleLabel.Text = "Framify"
     titleLabel.Font = Enum.Font.GothamBold
@@ -241,18 +224,18 @@ function createLoadingUI(widget)
     titleLabel.TextColor3 = Themes[Config.THEME].Text
     titleLabel.BackgroundTransparency = 1
     titleLabel.Size = UDim2.new(1, 0, 0, 28)
-    titleLabel.AnchorPoint = Vector2.new(0.5, 1)
-    titleLabel.Position = UDim2.new(0.5, 0, 0.98, 0)
+    titleLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    titleLabel.Position = UDim2.new(0.5, 0, 0.5, 20)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Center
     titleLabel.TextTransparency = 1
     UI.LoadingTitle = titleLabel
     
-    local barContainer = Instance.new("Frame", bottomHalf)
+    local barContainer = Instance.new("Frame", bg)
     barContainer.Name = "BarContainer"
     barContainer.BackgroundTransparency = 1
     barContainer.Size = UDim2.new(0.6, 0, 0, 6)
-    barContainer.AnchorPoint = Vector2.new(0.5, 0)
-    barContainer.Position = UDim2.new(0.5, 0, 0.1, 0)
+    barContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    barContainer.Position = UDim2.new(0.5, 0, 0.6, 0)
     UI.LoadingBarContainer = barContainer
 
     local barBG = Instance.new("Frame", barContainer)
@@ -260,6 +243,7 @@ function createLoadingUI(widget)
     barBG.BackgroundColor3 = Themes[Config.THEME].Surface
     barBG.BorderSizePixel = 0
     barBG.Size = UDim2.fromScale(1, 1)
+    barBG.ZIndex = 1
     local barBGCorner = Instance.new("UICorner", barBG)
     barBGCorner.CornerRadius = UDim.new(0.5, 0)
 
@@ -269,12 +253,13 @@ function createLoadingUI(widget)
     bar.BorderSizePixel = 0
     bar.Size = UDim2.fromScale(0, 1)
     bar.Position = UDim2.fromScale(0, 0)
+    bar.ZIndex = 2
     UI.LoadingBar = bar
 
     local barCorner = Instance.new("UICorner", bar)
     barCorner.CornerRadius = UDim.new(0.5, 0)
 
-    local subtitleLabel = Instance.new("TextLabel", bottomHalf)
+    local subtitleLabel = Instance.new("TextLabel", bg)
     subtitleLabel.Name = "LoadingSubtitle"
     subtitleLabel.Text = "Loading..."
     subtitleLabel.Font = Enum.Font.Gotham
@@ -283,8 +268,8 @@ function createLoadingUI(widget)
     subtitleLabel.TextColor3 = Themes[Config.THEME].TextSecondary
     subtitleLabel.BackgroundTransparency = 1
     subtitleLabel.Size = UDim2.new(1, 0, 0, 18)
-    subtitleLabel.AnchorPoint = Vector2.new(0.5, 0)
-    subtitleLabel.Position = UDim2.new(0.5, 0, 0.2, 0)
+    subtitleLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    subtitleLabel.Position = UDim2.new(0.5, 0, 0.6, 20)
     subtitleLabel.TextXAlignment = Enum.TextXAlignment.Center
     subtitleLabel.TextTransparency = 1
     UI.LoadingSubtitle = subtitleLabel
@@ -907,7 +892,12 @@ propertyAppliers.Default = function(element, data, parentSize)
     end
     element.AnchorPoint = anchorPoint
 
-    if Config.AUTO_SCALE then
+    local useAutoScale = Config.AUTO_SCALE
+    if data.tags and (table.find(data.tags, "abs") or table.find(data.tags, "noscale")) then
+        useAutoScale = false
+    end
+
+    if useAutoScale then
         local parentW = parentSize.X
         local parentH = parentSize.Y
         if parentW <= 0 or parentH <= 0 then parentW, parentH = 1920, 1080 end
@@ -937,12 +927,30 @@ propertyAppliers.Default = function(element, data, parentSize)
         end
         applyStrokes(element, props.strokes, props.strokeWeight)
     end
+
+    if data.tags and table.find(data.tags, "lock") then
+        if props.size and props.size.y ~= 0 then
+            local constraint = Instance.new("UIAspectRatioConstraint")
+            constraint.AspectRatio = props.size.x / props.size.y
+            constraint.Parent = element
+        end
+    end
+
+    if data.tags and table.find(data.tags, "gray") then
+        local colorCorrection = Instance.new("ColorCorrectionEffect")
+        colorCorrection.Saturation = -1
+        colorCorrection.Parent = element
+    end
 end
 
 propertyAppliers.TEXT = function(element, data, parentSize)
     propertyAppliers.Default(element, data, parentSize)
     local props = data.properties
-    element.Text = props.characters or ""
+    if element:IsA("TextBox") then
+        element.PlaceholderText = props.characters or ""
+    else
+        element.Text = props.characters or ""
+    end
     element.Font = (props.fontName and fontMap[props.fontName.family]) or Enum.Font.SourceSans
     
     element.TextScaled = true
@@ -1032,9 +1040,20 @@ elementCreators.Default = function(data)
 end
 
 elementCreators.TEXT = function(data)
-    local label = Instance.new("TextLabel")
-    label.TextScaled = true
-    return label
+    local tags = data.tags or {}
+    if table.find(tags, "box") then
+        local box = Instance.new("TextBox")
+        box.TextScaled = true
+        return box
+    elseif table.find(tags, "button") then
+        local btn = Instance.new("TextButton")
+        btn.TextScaled = true
+        return btn
+    else
+        local label = Instance.new("TextLabel")
+        label.TextScaled = true
+        return label
+    end
 end
 
 function createFromData(data, parent, parentSize)
@@ -1047,12 +1066,38 @@ function createFromData(data, parent, parentSize)
         createBehaviorScript(element, data.tags)
     end
     element.Parent = parent
+
     if data.children and #data.children > 0 then
+        local children = {}
+        for _, child in ipairs(data.children) do
+            table.insert(children, child)
+        end
+
+        local parentNodeData = nil
+        local parentNodeIndex = nil
+
+        for i, childData in ipairs(children) do
+            if childData.tags and table.find(childData.tags, "parent") then
+                parentNodeData = childData
+                parentNodeIndex = i
+                break
+            end
+        end
+
+        local childParent = element
         local childParentSize = Vector2.new(data.properties.size.x, data.properties.size.y)
-        for _, childData in ipairs(data.children) do
-            createFromData(childData, element, childParentSize)
+
+        if parentNodeData then
+            table.remove(children, parentNodeIndex)
+            childParent = createFromData(parentNodeData, element, childParentSize)
+            childParentSize = Vector2.new(parentNodeData.properties.size.x, parentNodeData.properties.size.y)
+        end
+
+        for _, childData in ipairs(children) do
+            createFromData(childData, childParent, childParentSize)
         end
     end
+
     return element
 end
 
@@ -1349,10 +1394,7 @@ local function playLoadingAnimation()
     -- Initial State
     UI.MainFrame.Visible = false
     UI.LoadingContainer.Visible = true
-    UI.LoadingTopHalf.Visible = true
-    UI.LoadingBottomHalf.Visible = true
-    UI.LoadingTopHalf.Position = UDim2.fromScale(0, 0)
-    UI.LoadingBottomHalf.Position = UDim2.fromScale(0, 0.5)
+    UI.LoadingContainer.GroupTransparency = 0
     UI.LoadingLogo.ImageTransparency = 1
     UI.LoadingTitle.TextTransparency = 1
     UI.LoadingSubtitle.TextTransparency = 1
@@ -1382,13 +1424,9 @@ local function playLoadingAnimation()
     progressTween.Completed:Wait()
     task.wait(0.2)
 
-    -- Split and Slide Out Animation
-    local slideOutInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
-    local slideTop = TweenService:Create(UI.LoadingTopHalf, slideOutInfo, { Position = UDim2.new(0, 0, -0.5, 0) })
-    local slideBottom = TweenService:Create(UI.LoadingBottomHalf, slideOutInfo, { Position = UDim2.new(0, 0, 1, 0) })
-    
-    slideTop:Play()
-    slideBottom:Play()
+    -- Fade out loading screen
+    local fadeOut = TweenService:Create(UI.LoadingContainer, TweenInfo.new(0.3), { GroupTransparency = 1 })
+    fadeOut:Play()
 
     -- Main UI Entrance Animation
     UI.MainFrame.Visible = true
@@ -1396,12 +1434,11 @@ local function playLoadingAnimation()
     local slideUp = TweenService:Create(UI.MainFrame, slideInInfo, { Position = UDim2.fromScale(0.5, 0.5) })
     local fadeIn = TweenService:Create(UI.MainFrame, slideInInfo, { GroupTransparency = 0 })
 
-    task.wait(0.15) -- Wait a bit for the split to start before sliding in
     slideUp:Play()
     fadeIn:Play()
 
     -- Cleanup
-    slideBottom.Completed:Wait()
+    fadeOut.Completed:Wait()
     fadeIn.Completed:Wait()
     UI.LoadingContainer.Visible = false
 end
