@@ -28,7 +28,7 @@ figma.ui.onmessage = async (msg) => {
 
     const nodes = [];
     for (const node of selection) {
-      nodes.push(await processNode(node, imageAssetMap));
+      nodes.push(await processNode(node, node.parent, imageAssetMap));
     }
 
     const exportData = {
@@ -42,7 +42,7 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
-async function processNode(node, assetMap) {
+async function processNode(node, parentNode, assetMap) {
   const tags = parseTags(node.name);
   const assetId = parseAssetId(node.name);
 
@@ -51,7 +51,7 @@ async function processNode(node, assetMap) {
     name: node.name,
     type: node.type,
     tags: tags,
-    properties: getNodeProperties(node),
+    properties: getNodeProperties(node, parentNode),
     children: [],
     assetId: null,
   };
@@ -82,7 +82,7 @@ async function processNode(node, assetMap) {
 
   if ('children' in node) {
     for (const child of node.children) {
-      nodeData.children.push(await processNode(child, assetMap));
+      nodeData.children.push(await processNode(child, node, assetMap));
     }
   }
 
@@ -99,7 +99,7 @@ function parseAssetId(name) {
     return match ? match[1] : null;
 }
 
-function getNodeProperties(node) {
+function getNodeProperties(node, parentNode) {
   const properties = {
     size: { x: node.width, y: node.height },
     position: { x: node.x, y: node.y },
@@ -108,6 +108,11 @@ function getNodeProperties(node) {
     visible: node.visible,
     effects: node.effects,
   };
+
+  if (parentNode && parentNode.type === 'GROUP') {
+      properties.position.x = node.x - parentNode.x;
+      properties.position.y = node.y - parentNode.y;
+  }
 
   if ('fills' in node) properties.fills = node.fills;
   if ('strokes' in node) properties.strokes = node.strokes;
