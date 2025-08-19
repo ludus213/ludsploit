@@ -1,7 +1,6 @@
 
 -- Framify Importer
 -- Version: 2.0.0
--- This script contains the full, final, and completely refactored logic for the Framify Roblox Studio plugin.
 
 local HttpService = game:GetService("HttpService")
 local Selection = game:GetService("Selection")
