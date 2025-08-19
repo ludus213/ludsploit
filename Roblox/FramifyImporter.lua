@@ -95,15 +95,16 @@ end
 
 function createMainUI(widget)
     local f = Instance.new("Frame"); f.Name="MainFrame"; f.Size=UDim2.fromScale(1,1); f.Visible = false; f.Parent=widget; UI.MainFrame=f
+    local cg = Instance.new("CanvasGroup", f); cg.Name = "CanvasGroup"; UI.MainFrame.CanvasGroup = cg
     local p = Instance.new("UIPadding",f); p.PaddingLeft,p.PaddingRight,p.PaddingTop,p.PaddingBottom=UDim.new(0,15),UDim.new(0,15),UDim.new(0,15),UDim.new(0,15)
-    local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,15); l.SortOrder=Enum.SortOrder.LayoutOrder; l.HorizontalAlignment=Enum.HorizontalAlignment.Center
-    local header = Instance.new("Frame",f); header.Name="Header"; header.BackgroundTransparency=1; header.LayoutOrder=1; header.Size=UDim2.new(1,0,0,40); UI.MainHeader=header
-    local p = Instance.new("UIPadding",header); p.PaddingLeft=UDim.new(0,10)
-    local hl = Instance.new("UIListLayout",header); hl.FillDirection=Enum.FillDirection.Horizontal; hl.VerticalAlignment=Enum.VerticalAlignment.Center; hl.HorizontalAlignment=Enum.HorizontalAlignment.Left; hl.Padding=UDim.new(0,15)
-    local logo = Instance.new("ImageLabel"); logo.Name="Logo"; logo.Image="rbxassetid://127991582997910"; logo.BackgroundTransparency=1; logo.Size=UDim2.fromOffset(32,32); UI.MainLogo=logo
-    local t = Instance.new("TextLabel",header); t.Name="Title"; t.Text="Framify Importer"; t.Font=Enum.Font.GothamBold; t.TextSize=22; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Left; UI.MainTitle=t
-    local i = Instance.new("TextLabel",f); i.Name="Instructions"; i.LayoutOrder=2; i.Text="Paste your mapping string below to begin."; i.Size=UDim2.new(1,0,0,18); i.Font=Enum.Font.Gotham; i.TextSize=14; i.TextWrapped=true; i.BackgroundTransparency=1; i.TextXAlignment=Enum.TextXAlignment.Center; UI.MainInstructions=i
-    local s = Instance.new("ScrollingFrame",f); s.Name="TextScrollFrame"; s.LayoutOrder=3; s.Size=UDim2.new(1,0,1,-230); s.BorderSizePixel=1; s.BackgroundTransparency=1; UI.MainTextScrollFrame=s
+    local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,12); l.SortOrder=Enum.SortOrder.LayoutOrder; l.HorizontalAlignment=Enum.HorizontalAlignment.Center
+    local header = Instance.new("Frame",f); header.Name="Header"; header.BackgroundTransparency=1; header.LayoutOrder=1; header.Size=UDim2.new(1,0,0,32); UI.MainHeader=header
+    local p = Instance.new("UIPadding",header); p.PaddingLeft=UDim.new(0,5)
+    local hl = Instance.new("UIListLayout",header); hl.FillDirection=Enum.FillDirection.Horizontal; hl.VerticalAlignment=Enum.VerticalAlignment.Center; hl.HorizontalAlignment=Enum.HorizontalAlignment.Left; hl.Padding=UDim.new(0,10)
+    local logo = Instance.new("ImageLabel"); logo.Name="Logo"; logo.Image="rbxassetid://127991582997910"; logo.BackgroundTransparency=1; logo.Size=UDim2.fromOffset(28,28); UI.MainLogo=logo
+    local t = Instance.new("TextLabel",header); t.Name="Title"; t.Text="Framify Importer"; t.Font=Enum.Font.GothamBold; t.TextSize=20; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Left; UI.MainTitle=t
+    local i = Instance.new("TextLabel",f); i.Name="Instructions"; i.LayoutOrder=2; i.Text="Paste your mapping string below to begin."; i.Size=UDim2.new(1,0,0,16); i.Font=Enum.Font.Gotham; i.TextSize=13; i.TextWrapped=true; i.BackgroundTransparency=1; i.TextXAlignment=Enum.TextXAlignment.Center; UI.MainInstructions=i
+    local s = Instance.new("ScrollingFrame",f); s.Name="TextScrollFrame"; s.LayoutOrder=3; s.Size=UDim2.new(1,0,1,-210); s.BorderSizePixel=1; s.BackgroundTransparency=1; UI.MainTextScrollFrame=s
     local tb = Instance.new("TextBox",s); tb.Name="TextBox"; tb.AutomaticSize=Enum.AutomaticSize.Y; tb.Font=Enum.Font.Code; tb.TextSize=13; tb.MultiLine=true; tb.ClearTextOnFocus=false; tb.PlaceholderText="Paste here..."; tb.TextXAlignment=Enum.TextXAlignment.Left; tb.TextYAlignment=Enum.TextYAlignment.Top; tb.Size=UDim2.new(1,-10,0,0); UI.MainMappingTextBox=tb
     tb:GetPropertyChangedSignal("Text"):Connect(function() s.CanvasSize = UDim2.new(0,0,0,tb.AbsoluteSize.Y) end)
     local btn = Instance.new("TextButton",f); btn:SetAttribute("StyleType", "Primary"); btn.LayoutOrder=4; btn.Text="Import"; btn.Size=UDim2.new(1,0,0,40); UI.MainImportButton=btn
@@ -116,11 +117,11 @@ end
 function createSettingsUI(widget)
     local f = Instance.new("Frame"); f.Name="SettingsFrame"; f.Size=UDim2.fromScale(1,1); f.Parent=widget; UI.SettingsFrame=f
     local p = Instance.new("UIPadding",f); p.PaddingLeft,p.PaddingRight,p.PaddingTop,p.PaddingBottom=UDim.new(0,15),UDim.new(0,15),UDim.new(0,15),UDim.new(0,15)
-    local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,10); l.SortOrder=Enum.SortOrder.LayoutOrder
-    local t = Instance.new("TextLabel",f); t.Name="Title"; t.LayoutOrder=1; t.Text="Settings"; t.Size=UDim2.new(1,0,0,24); t.Font=Enum.Font.GothamBold; t.TextSize=22; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsTitle=t
+    local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,8); l.SortOrder=Enum.SortOrder.LayoutOrder
+    local t = Instance.new("TextLabel",f); t.Name="Title"; t.LayoutOrder=1; t.Text="Settings"; t.Size=UDim2.new(1,0,0,22); t.Font=Enum.Font.GothamBold; t.TextSize=20; t.BackgroundTransparency=1; t.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsTitle=t
 
     local function createToggle(order, text, key)
-        local btn = Instance.new("TextButton",f); btn:SetAttribute("StyleType", "Secondary"); btn.LayoutOrder=order; btn.Size=UDim2.new(1,0,0,35);
+        local btn = Instance.new("TextButton",f); btn:SetAttribute("StyleType", "Secondary"); btn.LayoutOrder=order; btn.Size=UDim2.new(1,0,0,32);
         local function updateText() btn.Text=text..": "..(Config[key] and "On" or "Off") end
         updateText()
         btn.MouseButton1Click:Connect(function() Config[key]=not Config[key]; updateText() end)
@@ -130,10 +131,10 @@ function createSettingsUI(widget)
     UI.SettingsCenterCheck = createToggle(4, "Auto Center UI", "AUTO_CENTER_UI")
     UI.SettingsScaleCheck = createToggle(5, "Auto Scale UI", "AUTO_SCALE")
 
-    local al = Instance.new("TextLabel",f); al.Name="Label"; al.LayoutOrder=2; al.Text="Asset Folder Name"; al.Size=UDim2.new(1,0,0,18); al.Font=Enum.Font.Gotham; al.TextSize=14; al.BackgroundTransparency=1; al.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsAssetLabel=al
-    local at = Instance.new("TextBox",f); at.Name="TextBox"; at.LayoutOrder=3; at.Text=Config.ASSET_FOLDER_NAME; at.Size=UDim2.new(1,0,0,35); at.Font=Enum.Font.Code; at.TextScaled=true; UI.SettingsAssetText=at; at.FocusLost:Connect(function() Config.ASSET_FOLDER_NAME=at.Text end)
+    local al = Instance.new("TextLabel",f); al.Name="Label"; al.LayoutOrder=2; al.Text="Asset Folder Name"; al.Size=UDim2.new(1,0,0,16); al.Font=Enum.Font.Gotham; al.TextSize=13; al.BackgroundTransparency=1; al.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsAssetLabel=al
+    local at = Instance.new("TextBox",f); at.Name="TextBox"; at.LayoutOrder=3; at.Text=Config.ASSET_FOLDER_NAME; at.Size=UDim2.new(1,0,0,32); at.Font=Enum.Font.Code; at.TextScaled=true; UI.SettingsAssetText=at; at.FocusLost:Connect(function() Config.ASSET_FOLDER_NAME=at.Text end)
 
-    local tl = Instance.new("TextLabel",f); tl.Name="Label"; tl.LayoutOrder=6; tl.Text="Theme"; tl.Size=UDim2.new(1,0,0,18); tl.Font=Enum.Font.Gotham; tl.TextSize=14; tl.BackgroundTransparency=1; tl.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsThemeLabel=tl
+    local tl = Instance.new("TextLabel",f); tl.Name="Label"; tl.LayoutOrder=6; tl.Text="Theme"; tl.Size=UDim2.new(1,0,0,16); tl.Font=Enum.Font.Gotham; tl.TextSize=13; tl.BackgroundTransparency=1; tl.TextXAlignment=Enum.TextXAlignment.Left; UI.SettingsThemeLabel=tl
 
     local dropdownContainer = Instance.new("Frame", f)
     dropdownContainer.Name = "DropdownContainer"
@@ -225,6 +226,15 @@ function createFromData(data, parent, parentSize)
     if Config.CREATE_BEHAVIOR_SCRIPTS and table.find(data.tags, "button") then
         createBehaviorScript(element, data.tags)
     end
+    if Config.AUTO_SCALE and element:IsA("GuiObject") and not element:IsA("ScreenGui") then
+        local aspectRatio = Instance.new("UIAspectRatioConstraint")
+        aspectRatio.AspectRatio = data.properties.size.x / data.properties.size.y
+        aspectRatio.Parent = element
+
+        local sizeConstraint = Instance.new("UISizeConstraint")
+        sizeConstraint.MinSize = Vector2.new(20, 20)
+        sizeConstraint.Parent = element
+    end
     element.Parent = parent
     if data.children then
         local childParentSize = Config.AUTO_SCALE and data.properties.size or parentSize
@@ -302,47 +312,61 @@ end)
 local function playLoadingAnimation()
     UI.MainFrame.Visible = false
     UI.LoadingFrame.Visible = true
-    UI.LoadingFrame.BackgroundTransparency = 1
+    UI.LoadingFrame.BackgroundTransparency = 0
     UI.LoadingLogo.Position = UDim2.fromScale(0.5, 0.5)
     UI.LoadingLogo.Size = UDim2.fromOffset(128,128)
+    UI.LoadingLogo.ImageTransparency = 0
     UI.LoadingProgress.Size = UDim2.fromScale(0, 1)
 
-    TweenService:Create(UI.LoadingFrame, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
-    task.wait(0.3)
+    -- Create curtain frames
+    local curtainLeft = Instance.new("Frame", UI.LoadingFrame)
+    curtainLeft.Name = "CurtainLeft"
+    curtainLeft.Size = UDim2.new(0.5, 0, 1, 0)
+    curtainLeft.Position = UDim2.new(0, 0, 0, 0)
+    curtainLeft.BackgroundColor3 = Themes[Config.THEME].BG
+    curtainLeft.BorderSizePixel = 0
 
-    local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local curtainRight = Instance.new("Frame", UI.LoadingFrame)
+    curtainRight.Name = "CurtainRight"
+    curtainRight.Size = UDim2.new(0.5, 0, 1, 0)
+    curtainRight.Position = UDim2.new(0.5, 0, 0, 0)
+    curtainRight.BackgroundColor3 = Themes[Config.THEME].BG
+    curtainRight.BorderSizePixel = 0
+
+    task.wait(0.1) -- allow curtains to draw
+
+    local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
     local progressTween = TweenService:Create(UI.LoadingProgress, tweenInfo, { Size = UDim2.fromScale(1, 1) })
     progressTween:Play()
-
     progressTween.Completed:Wait()
-    task.wait(0.2)
 
-    UI.MainLogo.Parent = UI.MainHeader
+    task.wait(0.3)
+
+    -- Fade out logo and progress bar
+    local fadeOutTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.3), { ImageTransparency = 1 })
+    local fadeOutBarTween = TweenService:Create(UI.LoadingBar, TweenInfo.new(0.3), { BackgroundTransparency = 1 })
+    fadeOutTween:Play()
+    fadeOutBarTween:Play()
+    fadeOutTween.Completed:Wait()
+
+    -- Open curtains
+    local openTweenLeft = TweenService:Create(curtainLeft, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.new(0, 0, 1, 0) })
+    local openTweenRight = TweenService:Create(curtainRight, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0, 0, 1, 0) })
+
     UI.MainFrame.Visible = true
-    task.wait()
-    local finalPosition = UI.MainLogo.AbsolutePosition
-    local finalSize = UI.MainLogo.AbsoluteSize
-    UI.MainFrame.Visible = false
-    UI.MainLogo.Parent = nil
+    UI.MainFrame.CanvasGroup.GroupTransparency = 1
+    local fadeInMain = TweenService:Create(UI.MainFrame.CanvasGroup, TweenInfo.new(0.6, Enum.EasingStyle.Linear), { GroupTransparency = 0 })
 
-    local logoMoveTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = finalPosition })
-    local logoResizeTween = TweenService:Create(UI.LoadingLogo, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = finalSize })
+    openTweenLeft:Play()
+    openTweenRight:Play()
+    fadeInMain:Play()
 
-    logoMoveTween:Play()
-    logoResizeTween:Play()
-
-    logoMoveTween.Completed:Wait()
-
-    UI.LoadingLogo.Visible = false
-    UI.MainLogo.Parent = UI.MainHeader
-    UI.MainFrame.Visible = true
-    UI.MainTitle.Text = ""
-
-    local titleText = "Framify Importer"
-    for i = 1, #titleText do
-        UI.MainTitle.Text = string.sub(titleText, 1, i)
-        task.wait(0.05)
-    end
+    openTweenLeft.Completed:Wait()
+    curtainLeft:Destroy()
+    curtainRight:Destroy()
+    UI.LoadingFrame.Visible = false
+    UI.LoadingLogo.ImageTransparency = 0 -- Reset for next time
+    UI.LoadingBar.BackgroundTransparency = 0
 end
 
 mainPluginButton.Click:Connect(function()
