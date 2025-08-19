@@ -4,5 +4,6 @@
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "editorType": ["figma"]
+  "editorType": ["figma"],
+  "_comment": "To set the plugin icon, please upload the 'logo.png' file in the 'Icon' section when publishing the plugin to the Figma Community."
 }

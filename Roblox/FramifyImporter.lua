@@ -94,8 +94,8 @@ function createLoadingUI(widget)
 end
 
 function createMainUI(widget)
-    local f = Instance.new("Frame"); f.Name="MainFrame"; f.Size=UDim2.fromScale(1,1); f.Visible = false; f.Parent=widget; UI.MainFrame=f
-    local cg = Instance.new("CanvasGroup", f); cg.Name = "CanvasGroup"; UI.MainFrame.CanvasGroup = cg
+    local cg = Instance.new("CanvasGroup"); cg.Name = "MainCanvasGroup"; cg.Size = UDim2.fromScale(1, 1); cg.Visible = false; cg.Parent = widget; UI.MainCanvasGroup = cg
+    local f = Instance.new("Frame"); f.Name="MainFrame"; f.Size=UDim2.fromScale(1,1); f.BackgroundTransparency = 1; f.Parent=cg; UI.MainFrame=f
     local p = Instance.new("UIPadding",f); p.PaddingLeft,p.PaddingRight,p.PaddingTop,p.PaddingBottom=UDim.new(0,15),UDim.new(0,15),UDim.new(0,15),UDim.new(0,15)
     local l = Instance.new("UIListLayout",f); l.Padding=UDim.new(0,12); l.SortOrder=Enum.SortOrder.LayoutOrder; l.HorizontalAlignment=Enum.HorizontalAlignment.Center
     local header = Instance.new("Frame",f); header.Name="Header"; header.BackgroundTransparency=1; header.LayoutOrder=1; header.Size=UDim2.new(1,0,0,32); UI.MainHeader=header
@@ -353,9 +353,9 @@ local function playLoadingAnimation()
     local openTweenLeft = TweenService:Create(curtainLeft, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.new(0, 0, 1, 0) })
     local openTweenRight = TweenService:Create(curtainRight, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0, 0, 1, 0) })
 
-    UI.MainFrame.Visible = true
-    UI.MainFrame.CanvasGroup.GroupTransparency = 1
-    local fadeInMain = TweenService:Create(UI.MainFrame.CanvasGroup, TweenInfo.new(0.6, Enum.EasingStyle.Linear), { GroupTransparency = 0 })
+    UI.MainCanvasGroup.Visible = true
+    UI.MainCanvasGroup.GroupTransparency = 1
+    local fadeInMain = TweenService:Create(UI.MainCanvasGroup, TweenInfo.new(0.6, Enum.EasingStyle.Linear), { GroupTransparency = 0 })
 
     openTweenLeft:Play()
     openTweenRight:Play()
