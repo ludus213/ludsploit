@@ -37,7 +37,7 @@ function styleButton(button, styleType, theme)
     button.Font = Enum.Font.GothamBold
     button.TextSize = 14
     local corner = button:FindFirstChildOfClass("UICorner") or Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = button
     if styleType == "Primary" then button.BackgroundColor3 = theme.Primary; button.TextColor3 = theme.BG
     elseif styleType == "Secondary" then button.BackgroundColor3 = theme.Surface; button.TextColor3 = theme.Text
@@ -46,7 +46,7 @@ function styleButton(button, styleType, theme)
     local stroke = button:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     stroke.Color = theme.Border
-    stroke.Thickness = 1
+    stroke.Thickness = 0
     stroke.Parent = button
 end
 
@@ -310,7 +310,6 @@ importBtn.MouseButton1Click:Connect(function()
 end)
 
 local function playLoadingAnimation()
-    UI.MainFrame.Visible = false
     UI.LoadingFrame.Visible = true
     UI.LoadingFrame.BackgroundTransparency = 0
     UI.LoadingLogo.Position = UDim2.fromScale(0.5, 0.5)
