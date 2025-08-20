@@ -8,8 +8,11 @@ local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local VERSION = "2.0.0"
+
+local assetCache = {}
 
 local Config = {
     TARGET_SCREEN_GUI = "FramifyImport",
@@ -789,24 +792,46 @@ function populatePromptUI(widget, title, text, onYes, onNo)
     widget.Enabled = true
 end
 
-function findImageAsset(assetId)
-    if not assetId then
+function findImageAssetByName(assetName)
+    if not assetName or assetName == "" then
         return nil
     end
+
+    if assetCache[assetName] then
+        return assetCache[assetName]
+    end
+
     local assetFolder = ReplicatedStorage:FindFirstChild(Config.ASSET_FOLDER_NAME)
     if not assetFolder then
+        warn("Framify: Asset folder '" .. Config.ASSET_FOLDER_NAME .. "' not found in ReplicatedStorage.")
         return nil
     end
-    local image = assetFolder:FindFirstChild(assetId, true)
-    if image then
-        if image:IsA("ImageLabel") then
-            return image.Image
-        elseif image:IsA("ImageButton") then
-            return image.Image
-        elseif image:IsA("Decal") then
-            return image.Texture
+
+    for _, assetInstance in ipairs(assetFolder:GetDescendants()) do
+        local imageUrl = ""
+        if assetInstance:IsA("ImageLabel") or assetInstance:IsA("ImageButton") then
+            imageUrl = assetInstance.Image
+        elseif assetInstance:IsA("Decal") then
+            imageUrl = assetInstance.Texture
+        end
+
+        if imageUrl ~= "" then
+            local assetId = string.match(imageUrl, "%d+")
+            if assetId then
+                local success, productInfo = pcall(function()
+                    return MarketplaceService:GetProductInfo(tonumber(assetId))
+                end)
+
+                if success and productInfo and productInfo.Name == assetName then
+                    assetCache[assetName] = imageUrl
+                    return imageUrl
+                end
+            end
         end
     end
+
+    warn("Framify: Could not find an asset named '" .. assetName .. "' in folder '" .. Config.ASSET_FOLDER_NAME .. "'.")
+    assetCache[assetName] = nil -- Cache the failure
     return nil
 end
 
@@ -816,9 +841,9 @@ function createBehaviorScript(element, tags)
     S.Name = "ButtonBehavior"
     S.Source = s
     element:SetAttribute("NormalImage", element.Image)
-    element:SetAttribute("HoverImage", findImageAsset(element.Name .. "_hover"))
-    element:SetAttribute("ClickedImage", findImageAsset(element.Name .. "_clicked"))
-    element:SetAttribute("DisabledImage", findImageAsset(element.Name .. "_disabled"))
+    element:SetAttribute("HoverImage", findImageAssetByName(element.Name .. "_hover"))
+    element:SetAttribute("ClickedImage", findImageAssetByName(element.Name .. "_clicked"))
+    element:SetAttribute("DisabledImage", findImageAssetByName(element.Name .. "_disabled"))
     element:SetAttribute("IsToggleable", table.find(tags, "toggled"))
     element:SetAttribute("IsEnabled", not table.find(tags, "disabled"))
     S.Parent = element
@@ -995,7 +1020,7 @@ end
 
 propertyAppliers.Image = function(element, data)
     if data.assetId then
-        local imageId = findImageAsset(data.assetId)
+        local imageId = findImageAssetByName(data.assetId)
         if imageId and imageId ~= "" then
             element.Image = imageId
         end
@@ -1138,7 +1163,7 @@ function verifyAssets(assetIds)
         return assetIds, "Asset folder '" .. Config.ASSET_FOLDER_NAME .. "' not found in ReplicatedStorage."
     end
     for _, id in ipairs(assetIds) do
-        if not findImageAsset(id) then
+        if not findImageAssetByName(id) then
             table.insert(missing, id)
         end
     end
