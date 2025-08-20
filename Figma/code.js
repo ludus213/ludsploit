@@ -56,8 +56,9 @@ async function processNode(node, assetMap) {
     assetId: null,
   };
 
+  const hasMask = node.children && node.children.some(child => child.isMask);
   const hasBlurEffect = node.effects && node.effects.some(effect => effect.type === 'LAYER_BLUR' && effect.visible);
-  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect || node.type === 'VECTOR';
+  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect || node.type === 'VECTOR' || hasMask;
 
   if (isExportable) {
       if (assetId) {
@@ -74,15 +75,20 @@ async function processNode(node, assetMap) {
             assetMap.set(autoAssetId, imageBytes);
         }
       }
+      if (hasMask) {
+          return nodeData;
+      }
   }
 
   if (tags.includes('parent')) {
     return nodeData;
   }
 
-  if ('children' in node) {
+  if ('children'in node) {
     for (const child of node.children) {
-      nodeData.children.push(await processNode(child, assetMap));
+        if (!child.isMask) {
+            nodeData.children.push(await processNode(child, assetMap));
+        }
     }
   }
 
