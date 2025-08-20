@@ -792,6 +792,33 @@ function populatePromptUI(widget, title, text, onYes, onNo)
     widget.Enabled = true
 end
 
+function isNameMatch(marketplaceName, figmaName)
+    -- Escape figmaName for use in Lua patterns
+    local escapedFigmaName = string.gsub(figmaName, "([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1")
+
+    -- Pattern 1: [figmaName]
+    if marketplaceName == figmaName then
+        return true
+    end
+
+    -- Pattern 2: Images/[figmaName]
+    if marketplaceName == "Images/" .. figmaName then
+        return true
+    end
+
+    -- Pattern 3: [figmaName] ([any_Number])
+    if string.match(marketplaceName, "^" .. escapedFigmaName .. "%s%((%d+)%)$") then
+        return true
+    end
+
+    -- Pattern 4: Images/[figmaName] ([any_Number])
+    if string.match(marketplaceName, "^Images/" .. escapedFigmaName .. "%s%((%d+)%)$") then
+        return true
+    end
+
+    return false
+end
+
 function findImageAssetByName(assetName)
     if not assetName or assetName == "" then
         return nil
@@ -822,7 +849,7 @@ function findImageAssetByName(assetName)
                     return MarketplaceService:GetProductInfo(tonumber(assetId))
                 end)
 
-                if success and productInfo and productInfo.Name == assetName then
+                if success and productInfo and isNameMatch(productInfo.Name, assetName) then
                     assetCache[assetName] = imageUrl
                     return imageUrl
                 end
