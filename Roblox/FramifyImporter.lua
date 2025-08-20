@@ -977,10 +977,19 @@ propertyAppliers.Default = function(element, data, parentSize)
         ar.AspectRatio = props.size.x / props.size.y
         ar.Parent = element
     end
+
+    if props.isEllipse then
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(1, 0)
+        c.Parent = element
+    end
 end
 
 propertyAppliers.TEXT = function(element, data, parentSize)
     propertyAppliers.Default(element, data, parentSize)
+    if element:IsA("TextLabel") then
+        element.BackgroundTransparency = 1
+    end
     local props = data.properties
     element.Text = props.characters or ""
     element.Font = (props.fontName and fontMap[props.fontName.family]) or Enum.Font.SourceSans

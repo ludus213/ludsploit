@@ -57,7 +57,7 @@ async function processNode(node, assetMap) {
   };
 
   const hasBlurEffect = node.effects && node.effects.some(effect => effect.type === 'LAYER_BLUR' && effect.visible);
-  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect;
+  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect || node.type === 'VECTOR';
 
   if (isExportable) {
       if (assetId) {
@@ -107,6 +107,7 @@ function getNodeProperties(node) {
     opacity: node.opacity,
     visible: node.visible,
     effects: node.effects,
+    isEllipse: node.type === 'ELLIPSE',
   };
 
   if ('fills' in node) properties.fills = node.fills;
