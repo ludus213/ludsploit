@@ -17,6 +17,7 @@ local Config = {
     CREATE_BEHAVIOR_SCRIPTS = true,
     SHOW_ANCHOR_POPUP = true,
     AUTO_SCALE = true,
+    CHECK_ASSET_MANAGER = false,
     THEME = "Dracula"
 }
 
@@ -32,6 +33,7 @@ local Themes = {
 }
 
 local UI = {}
+local buttonConnections = {}
 local dropdownState = { isOpen = false, currentDropdown = nil }
 local fontMap = { ['Arial']=Enum.Font.Legacy, ['Roboto']=Enum.Font.SourceSans, ['Inter']=Enum.Font.SourceSans, ['Gotham']=Enum.Font.Gotham }
 
@@ -41,17 +43,25 @@ function styleButton(button, styleType, theme)
     button.TextScaled = true
     button.AutoButtonColor = false
 
+    if buttonConnections[button] then
+        for _, connection in ipairs(buttonConnections[button]) do
+            connection:Disconnect()
+        end
+        buttonConnections[button] = nil
+    end
+    buttonConnections[button] = {}
+
     local corner = button:FindFirstChildOfClass("UICorner") or Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = button
 
-    if styleType == "Primary" then 
+    if styleType == "Primary" then
         button.BackgroundColor3 = theme.Primary
         button.TextColor3 = Color3.fromRGB(255,255,255)
-    elseif styleType == "Secondary" then 
+    elseif styleType == "Secondary" then
         button.BackgroundColor3 = theme.Surface
         button.TextColor3 = theme.Text
-    elseif styleType == "Danger" then 
+    elseif styleType == "Danger" then
         button.BackgroundColor3 = theme.Danger
         button.TextColor3 = Color3.fromRGB(255,255,255)
     end
@@ -65,47 +75,45 @@ function styleButton(button, styleType, theme)
     local originalColor = button.BackgroundColor3
     local originalStroke = stroke.Color
 
-    button.MouseEnter:Connect(function()
-        local brighterColor = Color3.new(
-            math.min(1, originalColor.R * 1.15),
-            math.min(1, originalColor.G * 1.15),
-            math.min(1, originalColor.B * 1.15)
+    table.insert(buttonConnections[button], button.MouseEnter:Connect(function()
+        local hoverColor = Color3.new(
+            math.min(1, originalColor.R * 1.1),
+            math.min(1, originalColor.G * 1.1),
+            math.min(1, originalColor.B * 1.1)
         )
-        TweenService:Create(button, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            BackgroundColor3 = brighterColor
+        TweenService:Create(button, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = hoverColor
         }):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        TweenService:Create(stroke, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             Color = theme.Primary
         }):Play()
-    end)
+    end))
 
-    button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    table.insert(buttonConnections[button], button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             BackgroundColor3 = originalColor
         }):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        TweenService:Create(stroke, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             Color = originalStroke
         }):Play()
-    end)
+    end))
 
-    button.MouseButton1Down:Connect(function()
-        local darkerColor = Color3.new(
-            originalColor.R * 0.85,
-            originalColor.G * 0.85,
-            originalColor.B * 0.85
+    table.insert(buttonConnections[button], button.MouseButton1Down:Connect(function()
+        local pressedColor = Color3.new(
+            originalColor.R * 0.9,
+            originalColor.G * 0.9,
+            originalColor.B * 0.9
         )
-        TweenService:Create(button, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            BackgroundColor3 = darkerColor,
-            Size = UDim2.new(button.Size.X.Scale, button.Size.X.Offset, button.Size.Y.Scale, button.Size.Y.Offset - 1)
+        TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = pressedColor
         }):Play()
-    end)
+    end))
 
-    button.MouseButton1Up:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            BackgroundColor3 = originalColor,
-            Size = UDim2.new(button.Size.X.Scale, button.Size.X.Offset, button.Size.Y.Scale, button.Size.Y.Offset + 1)
+    table.insert(buttonConnections[button], button.MouseButton1Up:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = originalColor
         }):Play()
-    end)
+    end))
 end
 
 function closeDropdown()
@@ -559,6 +567,7 @@ function createSettingsUI(widget)
 
     UI.SettingsAnchorPopupCheck = createToggle(4, "Show Anchoring Popup", "SHOW_ANCHOR_POPUP")
     UI.SettingsScaleCheck = createToggle(5, "Auto Scale UI", "AUTO_SCALE")
+    UI.SettingsAssetManagerCheck = createToggle(6, "Check Asset Manager", "CHECK_ASSET_MANAGER")
 
     local tl = Instance.new("TextLabel", f)
     tl.Name = "Label"
@@ -793,20 +802,41 @@ function findImageAsset(assetId)
     if not assetId then
         return nil
     end
+
     local assetFolder = ReplicatedStorage:FindFirstChild(Config.ASSET_FOLDER_NAME)
     if not assetFolder then
         return nil
     end
-    local image = assetFolder:FindFirstChild(assetId, true)
-    if image then
-        if image:IsA("ImageLabel") then
-            return image.Image
-        elseif image:IsA("ImageButton") then
-            return image.Image
-        elseif image:IsA("Decal") then
-            return image.Texture
+
+    local function findIn(parent, name)
+        if not parent then return nil end
+        local image = parent:FindFirstChild(name, true)
+        if image then
+            if image:IsA("ImageLabel") then
+                return image.Image
+            elseif image:IsA("ImageButton") then
+                return image.Image
+            elseif image:IsA("Decal") then
+                return image.Texture
+            end
+        end
+        return nil
+    end
+
+    -- 1. Look for [assetname] in the specified folder
+    local foundImage = findIn(assetFolder, assetId)
+    if foundImage then
+        return foundImage
+    end
+
+    -- 2. If not found, check for Images/[assetname] in the same folder
+    if Config.CHECK_ASSET_MANAGER then
+        local foundInImagesPath = findIn(assetFolder, "Images/" .. assetId)
+        if foundInImagesPath then
+            return foundInImagesPath
         end
     end
+
     return nil
 end
 
@@ -916,18 +946,12 @@ propertyAppliers.Default = function(element, data, parentSize)
         useScale = false
     end
 
-    if useScale then
-        local parentW = parentSize.X
-        local parentH = parentSize.Y
-        if parentW <= 0 or parentH <= 0 then parentW, parentH = 1920, 1080 end
-
-        local sizeXScale = props.size.x / parentW
-        local sizeYScale = props.size.y / parentH
-        element.Size = UDim2.fromScale(sizeXScale, sizeYScale)
-
-        local posXScale = (props.position.x + (props.size.x * anchorPoint.X)) / parentW
-        local posYScale = (props.position.y + (props.size.y * anchorPoint.Y)) / parentH
-        element.Position = UDim2.fromScale(posXScale, posYScale)
+    if useScale and props.sizeScale and props.positionScale then
+        element.Size = UDim2.fromScale(props.sizeScale.x, props.sizeScale.y)
+        element.Position = UDim2.fromScale(
+            props.positionScale.x + (props.sizeScale.x * anchorPoint.X),
+            props.positionScale.y + (props.sizeScale.y * anchorPoint.Y)
+        )
         
         if props.cornerRadius and props.cornerRadius > 0 then
             local c = Instance.new("UICorner")
@@ -1181,11 +1205,13 @@ function performImport(data, statusLabel)
 
     mainContainer.Parent = targetGui
     
-    local aspectRatio = rootRefSize.X / rootRefSize.Y
-    local constraint = Instance.new("UIAspectRatioConstraint")
-    constraint.AspectRatio = aspectRatio
-    constraint.DominantAxis = Enum.DominantAxis.Height
-    constraint.Parent = mainContainer
+    if rootRefSize.Y > 0 then
+        local aspectRatio = rootRefSize.X / rootRefSize.Y
+        local constraint = Instance.new("UIAspectRatioConstraint")
+        constraint.AspectRatio = aspectRatio
+        constraint.DominantAxis = Enum.DominantAxis.Height
+        constraint.Parent = mainContainer
+    end
 
     for _, nodeData in ipairs(nodes) do
         createFromData(nodeData, importParent, rootRefSize)

@@ -28,7 +28,7 @@ figma.ui.onmessage = async (msg) => {
 
     const mapping = [];
     for (const node of selection) {
-      mapping.push(await processNode(node, imageAssetMap));
+      mapping.push(await processNode(node, imageAssetMap, referenceSize));
     }
 
     const exportData = {
@@ -42,7 +42,7 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
-async function processNode(node, assetMap) {
+async function processNode(node, assetMap, parentSize) {
   const tags = parseTags(node.name);
   const assetId = parseAssetId(node.name);
 
@@ -51,7 +51,7 @@ async function processNode(node, assetMap) {
     name: node.name,
     type: node.type,
     tags: tags,
-    properties: getNodeProperties(node),
+    properties: getNodeProperties(node, parentSize),
     children: [],
     assetId: null,
   };
@@ -81,8 +81,9 @@ async function processNode(node, assetMap) {
   }
 
   if ('children' in node) {
+    const newParentSize = { x: node.width, y: node.height };
     for (const child of node.children) {
-      nodeData.children.push(await processNode(child, assetMap));
+      nodeData.children.push(await processNode(child, assetMap, newParentSize));
     }
   }
 
@@ -99,10 +100,18 @@ function parseAssetId(name) {
     return match ? match[1] : null;
 }
 
-function getNodeProperties(node) {
+function getNodeProperties(node, parentSize) {
   const properties = {
     size: { x: node.width, y: node.height },
     position: { x: node.x, y: node.y },
+    sizeScale: {
+      x: parentSize.x > 0 ? node.width / parentSize.x : 0,
+      y: parentSize.y > 0 ? node.height / parentSize.y : 0
+    },
+    positionScale: {
+      x: parentSize.x > 0 ? node.x / parentSize.x : 0,
+      y: parentSize.y > 0 ? node.y / parentSize.y : 0
+    },
     rotation: node.rotation,
     opacity: node.opacity,
     visible: node.visible,
