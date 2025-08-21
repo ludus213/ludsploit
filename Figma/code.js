@@ -42,9 +42,20 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
+function isComplexEllipse(node) {
+    if (node.type !== 'ELLIPSE') {
+        return false;
+    }
+    const { startingAngle, endingAngle, innerRadius } = node.arcData;
+    const isFullCircle = Math.abs(startingAngle) < 1e-6 && Math.abs(endingAngle - 2 * Math.PI) < 1e-6;
+    const isSolid = innerRadius < 1e-6;
+    return !isFullCircle || !isSolid;
+}
+
 async function processNode(node, assetMap) {
   const tags = parseTags(node.name);
   const assetId = parseAssetId(node.name);
+  const isComplex = isComplexEllipse(node);
 
   const nodeData = {
     id: node.id,
@@ -56,9 +67,13 @@ async function processNode(node, assetMap) {
     assetId: null,
   };
 
+  if (node.type === 'ELLIPSE' && !isComplex) {
+      nodeData.properties.isEllipse = true;
+  }
+
   const hasMask = node.children && node.children.some(child => child.isMask);
   const hasBlurEffect = node.effects && node.effects.some(effect => effect.type === 'LAYER_BLUR' && effect.visible);
-  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect || node.type === 'VECTOR' || hasMask;
+  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect || node.type === 'VECTOR' || hasMask || isComplex;
 
   if (isExportable) {
       if (assetId) {
@@ -113,7 +128,6 @@ function getNodeProperties(node) {
     opacity: node.opacity,
     visible: node.visible,
     effects: node.effects,
-    isEllipse: node.type === 'ELLIPSE',
   };
 
   if ('fills' in node) properties.fills = node.fills;
