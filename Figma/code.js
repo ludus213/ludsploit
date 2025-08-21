@@ -42,6 +42,8 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
+const RASTERIZE_TYPES = new Set(['VECTOR', 'ELLIPSE', 'POLYGON', 'STAR', 'LINE']);
+
 async function processNode(node, assetMap) {
   const tags = parseTags(node.name);
   const assetId = parseAssetId(node.name);
@@ -58,7 +60,9 @@ async function processNode(node, assetMap) {
 
   const hasMask = node.children && node.children.some(child => child.isMask);
   const hasBlurEffect = node.effects && node.effects.some(effect => effect.type === 'LAYER_BLUR' && effect.visible);
-  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect || node.type === 'VECTOR' || node.type === 'ELLIPSE' || hasMask;
+  const shouldRasterize = RASTERIZE_TYPES.has(node.type);
+
+  const isExportable = tags.includes('image') || tags.includes('button') || tags.includes('parent') || hasBlurEffect || hasMask || shouldRasterize;
 
   if (isExportable) {
       if (assetId) {
@@ -75,7 +79,7 @@ async function processNode(node, assetMap) {
             assetMap.set(autoAssetId, imageBytes);
         }
       }
-      if (hasMask || node.type === 'ELLIPSE') {
+      if (hasMask || shouldRasterize) {
           return nodeData;
       }
   }
