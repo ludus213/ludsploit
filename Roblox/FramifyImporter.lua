@@ -1058,12 +1058,6 @@ propertyAppliers.Default = function(element, data, parentSize)
         ar.AspectRatio = props.size.x / props.size.y
         ar.Parent = element
     end
-
-    if props.isEllipse then
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(1, 0)
-        c.Parent = element
-    end
 end
 
 propertyAppliers.TEXT = function(element, data, parentSize)
