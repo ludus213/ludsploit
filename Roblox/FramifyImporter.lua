@@ -1441,6 +1441,25 @@ function createSlider(parent, theme, options)
     return container
 end
 
+function setAnchorRecursively(element, newAnchorPoint)
+    if not element:IsA("GuiObject") then
+        return
+    end
+
+    local oldAnchorPoint = element.AnchorPoint
+    local size = element.AbsoluteSize
+
+    local deltaAnchor = newAnchorPoint - oldAnchorPoint
+    local deltaPosition = Vector2.new(deltaAnchor.X * size.X, deltaAnchor.Y * size.Y)
+
+    element.AnchorPoint = newAnchorPoint
+    element.Position = element.Position + UDim2.fromOffset(deltaPosition.X, deltaPosition.Y)
+
+    for _, child in ipairs(element:GetChildren()) do
+        setAnchorRecursively(child, newAnchorPoint)
+    end
+end
+
 function populateFinalizationUI(widget, targetElement)
     for _, child in ipairs(widget:GetChildren()) do
         child:Destroy()
@@ -1504,7 +1523,7 @@ function populateFinalizationUI(widget, targetElement)
         styleButton(btn, "Secondary", Themes[Config.THEME])
 
         btn.MouseButton1Click:Connect(function()
-            targetElement.AnchorPoint = anchorInfo.value
+            setAnchorRecursively(targetElement, anchorInfo.value)
         end)
     end
 
