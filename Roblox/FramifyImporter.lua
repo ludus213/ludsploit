@@ -1484,6 +1484,7 @@ function populateFinalizationUI(widget, targetElement)
     gridLayout.CellPadding = UDim2.fromScale(0.05, 0.05)
     gridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     gridLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
     local anchors = {
         { name = "┌", value = Vector2.new(0, 0) }, { name = "┬", value = Vector2.new(0.5, 0) }, { name = "┐", value = Vector2.new(1, 0) },
@@ -1491,10 +1492,11 @@ function populateFinalizationUI(widget, targetElement)
         { name = "└", value = Vector2.new(0, 1) }, { name = "┴", value = Vector2.new(0.5, 1) }, { name = "┘", value = Vector2.new(1, 1) }
     }
 
-    for _, anchorInfo in ipairs(anchors) do
+    for i, anchorInfo in ipairs(anchors) do
         local btn = Instance.new("TextButton")
         btn.Name = anchorInfo.name
         btn.Text = anchorInfo.name
+        btn.LayoutOrder = i
         btn.Font = Enum.Font.GothamBold
         btn.TextSize = 24
         btn.Parent = gridFrame
