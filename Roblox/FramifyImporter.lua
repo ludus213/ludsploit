@@ -1341,15 +1341,17 @@ function createSlider(parent, theme, options)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Size = UDim2.new(0.7, -4, 1, 0)
     
-    local valueLabel = Instance.new("TextLabel", topRow)
-    valueLabel.Name = "ValueLabel"
-    valueLabel.Text = string.format("%.2f", options.default)
-    valueLabel.Font = Enum.Font.Code
-    valueLabel.TextSize = 12
-    valueLabel.TextColor3 = theme.Primary
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valueLabel.Size = UDim2.new(0.3, 0, 1, 0)
+    local valueBox = Instance.new("TextBox", topRow)
+    valueBox.Name = "ValueBox"
+    valueBox.Text = string.format("%.2f", options.default)
+    valueBox.Font = Enum.Font.Code
+    valueBox.TextSize = 12
+    valueBox.TextColor3 = theme.Primary
+    valueBox.BackgroundColor3 = theme.Surface
+    valueBox.BackgroundTransparency = 0.5
+    valueBox.TextXAlignment = Enum.TextXAlignment.Right
+    valueBox.Size = UDim2.new(0.3, 0, 1, 0)
+    valueBox.ClearTextOnFocus = false
 
     local sliderFrame = Instance.new("Frame")
     sliderFrame.Size = UDim2.new(1, 0, 0, 20)
@@ -1363,7 +1365,6 @@ function createSlider(parent, theme, options)
     local bar = Instance.new("Frame", sliderFrame)
     bar.BackgroundColor3 = theme.Primary
     bar.BorderSizePixel = 0
-    bar.Size = UDim2.new((options.default - options.min) / (options.max - options.min), 0, 1, 0)
     
     local barCorner = Instance.new("UICorner", bar)
     barCorner.CornerRadius = UDim.new(0, 4)
@@ -1371,7 +1372,6 @@ function createSlider(parent, theme, options)
     local thumb = Instance.new("Frame", sliderFrame)
     thumb.Size = UDim2.new(0, 12, 0, 12)
     thumb.AnchorPoint = Vector2.new(0.5, 0.5)
-    thumb.Position = UDim2.new(bar.Size.X.Scale, 0, 0.5, 0)
     thumb.BackgroundColor3 = theme.Text
     thumb.BorderSizePixel = 2
     thumb.BorderColor3 = theme.Primary
@@ -1381,24 +1381,48 @@ function createSlider(parent, theme, options)
     
     local dragging = false
     
-    local function updateSlider(inputPos)
+    local function updateSliderFromValue(value)
+        local scale = (value - options.min) / (options.max - options.min)
+        bar.Size = UDim2.new(scale, 0, 1, 0)
+        thumb.Position = UDim2.new(scale, 0, 0.5, 0)
+        if options.onChanged then
+            options.onChanged(value)
+        end
+    end
+
+    local function updateSliderFromInput(inputPos)
         if not dragging then return end
         local scale = math.clamp((inputPos.X - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
         local value = options.min + scale * (options.max - options.min)
         
         bar.Size = UDim2.new(scale, 0, 1, 0)
         thumb.Position = UDim2.new(scale, 0, 0.5, 0)
-        valueLabel.Text = string.format("%.2f", value)
+        valueBox.Text = string.format("%.2f", value)
         
         if options.onChanged then
             options.onChanged(value)
         end
     end
     
+    updateSliderFromValue(options.default)
+
+    valueBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local num = tonumber(valueBox.Text)
+            if num then
+                local clampedValue = math.clamp(num, options.min, options.max)
+                valueBox.Text = string.format("%.2f", clampedValue)
+                updateSliderFromValue(clampedValue)
+            else
+                valueBox.Text = string.format("%.2f", options.default)
+            end
+        end
+    end)
+
     sliderFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            updateSlider(input.Position)
+            updateSliderFromInput(input.Position)
         end
     end)
     
@@ -1410,7 +1434,7 @@ function createSlider(parent, theme, options)
     
     sliderFrame.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            updateSlider(input.Position)
+            updateSliderFromInput(input.Position)
         end
     end)
     
@@ -1442,7 +1466,7 @@ function populateFinalizationUI(widget, targetElement)
 
     local anchorTitle = Instance.new("TextLabel", mainFrame)
     anchorTitle.Name = "Title"
-    anchorTitle.Text = "Anchor Point"
+    anchorTitle.Text = "Anchoring Settings"
     anchorTitle.Font = Enum.Font.GothamBold
     anchorTitle.TextSize = 14
     anchorTitle.Size = UDim2.new(1, 0, 0, 20)
