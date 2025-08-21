@@ -792,6 +792,39 @@ function populatePromptUI(widget, title, text, onYes, onNo)
     widget.Enabled = true
 end
 
+function buildAssetMap()
+    local assetMap = {}
+    local assetFolder = ReplicatedStorage:FindFirstChild(Config.ASSET_FOLDER_NAME)
+    if not assetFolder then
+        warn("Framify: Asset folder '" .. Config.ASSET_FOLDER_NAME .. "' not found in ReplicatedStorage.")
+        return assetMap
+    end
+
+    for _, assetInstance in ipairs(assetFolder:GetDescendants()) do
+        local imageUrl = ""
+        if assetInstance:IsA("ImageLabel") or assetInstance:IsA("ImageButton") then
+            imageUrl = assetInstance.Image
+        elseif assetInstance:IsA("Decal") then
+            imageUrl = assetInstance.Texture
+        end
+
+        if imageUrl ~= "" then
+            local assetId = string.match(imageUrl, "%d+")
+            if assetId then
+                local success, productInfo = pcall(function()
+                    return MarketplaceService:GetProductInfo(tonumber(assetId))
+                end)
+
+                if success and productInfo then
+                    assetMap[productInfo.Name] = imageUrl
+                end
+            end
+        end
+    end
+
+    return assetMap
+end
+
 function isNameMatch(marketplaceName, figmaName)
     -- Escape figmaName for use in Lua patterns
     local escapedFigmaName = string.gsub(figmaName, "([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1")
@@ -819,7 +852,7 @@ function isNameMatch(marketplaceName, figmaName)
     return false
 end
 
-function findImageAssetByName(assetName)
+function findImageAssetByName(assetName, assetMap)
     if not assetName or assetName == "" then
         return nil
     end
@@ -828,32 +861,10 @@ function findImageAssetByName(assetName)
         return assetCache[assetName]
     end
 
-    local assetFolder = ReplicatedStorage:FindFirstChild(Config.ASSET_FOLDER_NAME)
-    if not assetFolder then
-        warn("Framify: Asset folder '" .. Config.ASSET_FOLDER_NAME .. "' not found in ReplicatedStorage.")
-        return nil
-    end
-
-    for _, assetInstance in ipairs(assetFolder:GetDescendants()) do
-        local imageUrl = ""
-        if assetInstance:IsA("ImageLabel") or assetInstance:IsA("ImageButton") then
-            imageUrl = assetInstance.Image
-        elseif assetInstance:IsA("Decal") then
-            imageUrl = assetInstance.Texture
-        end
-
-        if imageUrl ~= "" then
-            local assetId = string.match(imageUrl, "%d+")
-            if assetId then
-                local success, productInfo = pcall(function()
-                    return MarketplaceService:GetProductInfo(tonumber(assetId))
-                end)
-
-                if success and productInfo and isNameMatch(productInfo.Name, assetName) then
-                    assetCache[assetName] = imageUrl
-                    return imageUrl
-                end
-            end
+    for marketplaceName, imageUrl in pairs(assetMap) do
+        if isNameMatch(marketplaceName, assetName) then
+            assetCache[assetName] = imageUrl -- Cache the successful lookup
+            return imageUrl
         end
     end
 
@@ -862,15 +873,15 @@ function findImageAssetByName(assetName)
     return nil
 end
 
-function createBehaviorScript(element, tags)
+function createBehaviorScript(element, tags, assetMap)
     local s = [[local b=script.Parent;local c=b:GetAttribute;local n=c(b,"NormalImage");local h=c(b,"HoverImage");local p=c(b,"ClickedImage");local d=c(b,"DisabledImage");local t=c(b,"IsToggled")or false;local e=c(b,"IsEnabled")or true;local function u()if not e then b.Image=d or n;return end;if t and p then b.Image=p elseif c(b,"IsHovering")and h then b.Image=h else b.Image=n end end;b.MouseEnter:Connect(function()b:SetAttribute("IsHovering",true)u()end)b.MouseLeave:Connect(function()b:SetAttribute("IsHovering",false)u()end)b.MouseButton1Click:Connect(function()if not e then return end;if c(b,"IsToggleable")then t=not t;b:SetAttribute("IsToggled",t)end;u()end)b:GetAttributeChangedSignal("IsEnabled"):Connect(function()e=c(b,"IsEnabled")u()end)u()]]
     local S = Instance.new("LocalScript")
     S.Name = "ButtonBehavior"
     S.Source = s
     element:SetAttribute("NormalImage", element.Image)
-    element:SetAttribute("HoverImage", findImageAssetByName(element.Name .. "_hover"))
-    element:SetAttribute("ClickedImage", findImageAssetByName(element.Name .. "_clicked"))
-    element:SetAttribute("DisabledImage", findImageAssetByName(element.Name .. "_disabled"))
+    element:SetAttribute("HoverImage", findImageAssetByName(element.Name .. "_hover", assetMap))
+    element:SetAttribute("ClickedImage", findImageAssetByName(element.Name .. "_clicked", assetMap))
+    element:SetAttribute("DisabledImage", findImageAssetByName(element.Name .. "_disabled", assetMap))
     element:SetAttribute("IsToggleable", table.find(tags, "toggled"))
     element:SetAttribute("IsEnabled", not table.find(tags, "disabled"))
     S.Parent = element
@@ -1054,9 +1065,9 @@ propertyAppliers.TEXT = function(element, data, parentSize)
     end
 end
 
-propertyAppliers.Image = function(element, data)
+propertyAppliers.Image = function(element, data, assetMap)
     if data.assetId then
-        local imageId = findImageAssetByName(data.assetId)
+        local imageId = findImageAssetByName(data.assetId, assetMap)
         if imageId and imageId ~= "" then
             element.Image = imageId
         end
@@ -1123,7 +1134,7 @@ elementCreators.TEXT = function(data)
     end
 end
 
-function createFromData(data, parent, parentSize)
+function createFromData(data, parent, parentSize, assetMap)
     if data.tags and table.find(data.tags, "ignore") then
         return nil
     end
@@ -1131,10 +1142,10 @@ function createFromData(data, parent, parentSize)
     local element = (elementCreators[data.type] or elementCreators.Default)(data)
     ;(propertyAppliers[data.type] or propertyAppliers.Default)(element, data, parentSize)
     if element:IsA("ImageLabel") or element:IsA("ImageButton") then
-        propertyAppliers.Image(element, data)
+        propertyAppliers.Image(element, data, assetMap)
     end
     if Config.CREATE_BEHAVIOR_SCRIPTS and data.tags and table.find(data.tags, "button") then
-        createBehaviorScript(element, data.tags)
+        createBehaviorScript(element, data.tags, assetMap)
     end
     element.Parent = parent
 
@@ -1151,20 +1162,20 @@ function createFromData(data, parent, parentSize)
 
         if parentNodeData then
             -- A node with _parent tag is found. It becomes the parent for its siblings.
-            local parentElement = createFromData(parentNodeData, element, childParentSize)
+            local parentElement = createFromData(parentNodeData, element, childParentSize, assetMap)
 
             if parentElement then
                 local newParentSize = Vector2.new(parentNodeData.properties.size.x, parentNodeData.properties.size.y)
                 for _, childData in ipairs(data.children) do
                     if childData ~= parentNodeData then
-                        createFromData(childData, parentElement, newParentSize)
+                        createFromData(childData, parentElement, newParentSize, assetMap)
                     end
                 end
             end
         else
             -- No node with _parent tag, process children normally.
             for _, childData in ipairs(data.children) do
-                createFromData(childData, element, childParentSize)
+                createFromData(childData, element, childParentSize, assetMap)
             end
         end
     end
@@ -1192,14 +1203,10 @@ function collectAssetIds(dataTable)
     return idList
 end
 
-function verifyAssets(assetIds)
+function verifyAssets(assetIds, assetMap)
     local missing = {}
-    local assetFolder = ReplicatedStorage:FindFirstChild(Config.ASSET_FOLDER_NAME)
-    if not assetFolder then
-        return assetIds, "Asset folder '" .. Config.ASSET_FOLDER_NAME .. "' not found in ReplicatedStorage."
-    end
     for _, id in ipairs(assetIds) do
-        if not findImageAssetByName(id) then
+        if not findImageAssetByName(id, assetMap) then
             table.insert(missing, id)
         end
     end
@@ -1210,7 +1217,7 @@ function verifyAssets(assetIds)
     end
 end
 
-function performImport(data, statusLabel)
+function performImport(data, statusLabel, assetMap)
     statusLabel.Text = "Importing..."
     local targetGui = StarterGui:FindFirstChild(Config.TARGET_SCREEN_GUI)
     if targetGui then
@@ -1249,7 +1256,7 @@ function performImport(data, statusLabel)
     constraint.Parent = mainContainer
 
     for _, nodeData in ipairs(nodes) do
-        createFromData(nodeData, importParent, rootRefSize)
+        createFromData(nodeData, importParent, rootRefSize, assetMap)
     end
     
     targetGui.Parent = StarterGui
@@ -1564,23 +1571,26 @@ local function initializeUI()
             statusLabel.Text = "Error: Invalid mapping string."
             return
         end
+
         local requiredAssets = collectAssetIds(data.nodes)
         if #requiredAssets > 0 then
-            local missingAssets, err = verifyAssets(requiredAssets)
+            statusLabel.Text = "Verifying assets..."
+            local assetMap = buildAssetMap()
+            local missingAssets, err = verifyAssets(requiredAssets, assetMap)
             if #missingAssets > 0 then
                 statusLabel.Text = "Error: " .. err
                 return
             end
             populatePromptUI(promptWidget, "Image Assets Found", "This UI requires images that appear to be uploaded. Proceed with import?",
                 function()
-                    performImport(data, statusLabel)
+                    performImport(data, statusLabel, assetMap)
                 end,
                 function()
                     statusLabel.Text = "Import cancelled."
                 end
             )
         else
-            performImport(data, statusLabel)
+            performImport(data, statusLabel, {})
         end
     end)
     
